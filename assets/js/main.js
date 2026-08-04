@@ -149,10 +149,12 @@
   var CP = "assets/images/completed-projects/";
   var ALBUMS = [
     {
-      name: "Belihuloya",
+      name: "Rathnapura",
       projects: [
-        { name: "Project 01", photos: [1,2,3,4,5] },
-        { name: "Project 02", photos: [6,7,8,9] }
+        { name: "Belihuloya project 01", photos: [1,2,3,4,5] },
+        { name: "Belihuloya project 02", photos: [6,7,8,9] },
+        { name: "Sabaragamuwa University", photos: [36,37,38,39] }
+
       ]
     },
     {
@@ -167,6 +169,18 @@
       projects: [
         { name: "Project 01", photos: [18,19,20,21,22] },
         { name: "Project 02", photos: [23,24,25,26,27,28,29] }
+      ]
+    },
+    {
+      name: "Dehiwala",
+      projects: [
+        { name: "Project 01", photos: [30,31,32] }
+      ]
+    },
+    {
+      name: "Dehiwala",
+      projects: [
+        { name: "Project 01", photos: [30,31,32] }
       ]
     }
   ];
