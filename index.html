@@ -44,7 +44,10 @@
 
 <!-- ============ HERO ============ -->
 <section class="hero" id="home">
-  <div class="hero-bg"><img src="assets/images/hero/solar-hero.png" alt="Rows of solar panels under a clear blue sky"></div>
+  <div class="hero-bg">
+    <img class="hero-bg-img is-active" src="assets/images/hero/solar-hero.png" alt="Rows of solar panels under a clear blue sky">
+    <img class="hero-bg-img" src="assets/images/slider/slider-4.jpg" alt="Colombo city skyline lit up at dusk">
+  </div>
   <div class="hero-canvas" id="heroCanvas"></div>
   <div class="hero-scrim"></div>
   <div class="hero-content">
@@ -199,11 +202,20 @@
     <div class="section-head center">
       <p class="eyebrow center">Field Work</p>
       <h2 class="section-title reveal">Our Projects</h2>
-      <p class="lede reveal">A working record — click any frame for a closer look.</p>
+      <p class="lede reveal">Browse by site — pick a location, then a project, to see the photos.</p>
     </div>
   </div>
   <div class="container">
-    <div class="proj-grid" id="projGrid"></div>
+    <nav class="gallery-crumbs" id="galleryCrumbs" aria-label="Gallery breadcrumb"></nav>
+
+    <!-- Level 1: locations (albums) -->
+    <div class="album-grid" id="albumGrid"></div>
+
+    <!-- Level 2: projects within a location (sub-albums) -->
+    <div class="album-grid" id="subAlbumGrid" hidden></div>
+
+    <!-- Level 3: photos within a project -->
+    <div class="proj-grid" id="projGrid" hidden></div>
   </div>
 </section>
 

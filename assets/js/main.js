@@ -7,6 +7,19 @@
   var isTouch = window.matchMedia && window.matchMedia("(hover: none), (pointer: coarse)").matches;
 
   /* ============================================================
+     HERO BACKGROUND SLIDESHOW
+     ============================================================ */
+  var heroSlides = document.querySelectorAll(".hero-bg-img");
+  if (heroSlides.length > 1 && !reduceMotion){
+    var heroSlideIdx = 0;
+    setInterval(function(){
+      heroSlides[heroSlideIdx].classList.remove("is-active");
+      heroSlideIdx = (heroSlideIdx + 1) % heroSlides.length;
+      heroSlides[heroSlideIdx].classList.add("is-active");
+    }, 6000);
+  }
+
+  /* ============================================================
      NAV
      ============================================================ */
   var nav = document.getElementById("siteNav");
@@ -123,59 +136,201 @@
   }
 
   /* ============================================================
-     PROJECT GALLERY + LIGHTBOX
+     PROJECT GALLERY — LOCATIONS -> PROJECTS (SUB-ALBUMS) -> PHOTOS
+     ============================================================
+     EDIT THIS DATA to match your real sites/projects/photos.
+     Each location = one album (e.g. "Belihuloya").
+     Each location has one or more projects (sub-albums, e.g. "Project 01").
+     Each project has a list of photo files from
+     assets/images/completed-projects/
+     The FIRST photo in each project is used as its cover image,
+     and the first project's first photo is used as the location cover.
      ============================================================ */
-  var projectNums = [1,2,3,4,5,6,7,8,9,10,11,12,13,14,16,17,18,19,20,21,22,23,24,25,26,27,28,29];
-  var grid = document.getElementById("projGrid");
-  var srcs = projectNums.map(function(n){ return "assets/images/completed-projects/project-" + n + ".jpg"; });
+  var CP = "assets/images/completed-projects/";
+  var ALBUMS = [
+    {
+      name: "Belihuloya",
+      projects: [
+        { name: "Project 01", photos: [1,2,3,4,5] },
+        { name: "Project 02", photos: [6,7,8,9] }
+      ]
+    },
+    {
+      name: "Colombo",
+      projects: [
+        { name: "Project 01", photos: [10,11,12,13] },
+        { name: "Project 02", photos: [14,16,17] }
+      ]
+    },
+    {
+      name: "Kandy",
+      projects: [
+        { name: "Project 01", photos: [18,19,20,21,22] },
+        { name: "Project 02", photos: [23,24,25,26,27,28,29] }
+      ]
+    }
+  ];
 
-  srcs.forEach(function(src, i){
-    var item = document.createElement("div");
-    item.className = "proj-item reveal";
-    item.setAttribute("data-index", i);
-    item.innerHTML = '<img src="'+src+'" alt="Ceylon Energy Services completed project '+(i+1)+'" loading="lazy"><span class="plus"></span>';
-    grid.appendChild(item);
-  });
+  (function initGallery(){
+    var crumbs      = document.getElementById("galleryCrumbs");
+    var albumGrid    = document.getElementById("albumGrid");
+    var subAlbumGrid = document.getElementById("subAlbumGrid");
+    var photoGrid    = document.getElementById("projGrid");
+    var lightbox = document.getElementById("lightbox");
+    var lbImg    = document.getElementById("lbImg");
+    var lbIndex  = 0;
+    var activeSrcs = [];
+    var activeAlbum = null;
 
-  if (window.gsap && window.ScrollTrigger) {
-    gsap.utils.toArray(".proj-item").forEach(function(el, i){
-      gsap.fromTo(el, { opacity: 0, scale: 0.92 }, {
-        opacity: 1, scale: 1, duration: 0.6, ease: "power2.out", delay: (i % 4) * 0.05,
-        scrollTrigger: { trigger: el, start: "top 95%" }
+    function src(n){ return CP + "project-" + n + ".jpg"; }
+
+    function revealCards(selector){
+      var cards = document.querySelectorAll(selector);
+      if (window.gsap && window.ScrollTrigger) {
+        gsap.utils.toArray(selector).forEach(function(el, i){
+          gsap.fromTo(el, { opacity: 0, scale: 0.94 }, {
+            opacity: 1, scale: 1, duration: 0.55, ease: "power2.out", delay: (i % 4) * 0.05,
+            scrollTrigger: { trigger: el, start: "top 95%" }
+          });
+        });
+      } else {
+        cards.forEach(function(el){ el.style.opacity = 1; });
+      }
+    }
+
+    function showView(view){
+      albumGrid.hidden    = view !== "albums";
+      subAlbumGrid.hidden = view !== "projects";
+      photoGrid.hidden    = view !== "photos";
+    }
+
+    function renderCrumbs(){
+      var parts = [];
+      parts.push('<button type="button" data-nav="albums">All Locations</button>');
+      if (activeAlbum){
+        parts.push('<span class="sep">/</span>');
+        if (photoGrid.hidden){
+          parts.push('<span class="current">'+activeAlbum.name+'</span>');
+        } else {
+          parts.push('<button type="button" data-nav="projects">'+activeAlbum.name+'</button>');
+          parts.push('<span class="sep">/</span>');
+          parts.push('<span class="current">'+activeAlbum.activeProjectName+'</span>');
+        }
+      }
+      crumbs.innerHTML = parts.join(" ");
+    }
+
+    function renderAlbums(){
+      albumGrid.innerHTML = "";
+      ALBUMS.forEach(function(loc, i){
+        var totalPhotos = loc.projects.reduce(function(sum, p){ return sum + p.photos.length; }, 0);
+        var cover = src(loc.projects[0].photos[0]);
+        var card = document.createElement("div");
+        card.className = "album-card reveal";
+        card.setAttribute("data-album", i);
+        card.innerHTML =
+          '<img src="'+cover+'" alt="'+loc.name+' — completed solar projects" loading="lazy">' +
+          '<div class="album-label"><h4>'+loc.name+'</h4><span>' +
+          loc.projects.length + (loc.projects.length === 1 ? ' project' : ' projects') +
+          ' · ' + totalPhotos + ' photos</span></div>';
+        albumGrid.appendChild(card);
       });
-    });
-  } else {
-    document.querySelectorAll(".proj-item").forEach(function(el){ el.style.opacity = 1; });
-  }
+      revealCards(".album-card");
+    }
 
-  var lightbox = document.getElementById("lightbox");
-  var lbImg = document.getElementById("lbImg");
-  var lbIndex = 0;
-  function openLightbox(i){
-    lbIndex = i;
-    lbImg.src = srcs[lbIndex];
-    lightbox.classList.add("is-open");
-  }
-  function closeLightbox(){ lightbox.classList.remove("is-open"); }
-  function stepLightbox(dir){
-    lbIndex = (lbIndex + dir + srcs.length) % srcs.length;
-    lbImg.src = srcs[lbIndex];
-  }
-  grid.addEventListener("click", function(e){
-    var item = e.target.closest(".proj-item");
-    if (!item) return;
-    openLightbox(parseInt(item.getAttribute("data-index"), 10));
-  });
-  document.getElementById("lbClose").addEventListener("click", closeLightbox);
-  document.getElementById("lbPrev").addEventListener("click", function(){ stepLightbox(-1); });
-  document.getElementById("lbNext").addEventListener("click", function(){ stepLightbox(1); });
-  lightbox.addEventListener("click", function(e){ if (e.target === lightbox) closeLightbox(); });
-  window.addEventListener("keydown", function(e){
-    if (!lightbox.classList.contains("is-open")) return;
-    if (e.key === "Escape") closeLightbox();
-    if (e.key === "ArrowRight") stepLightbox(1);
-    if (e.key === "ArrowLeft") stepLightbox(-1);
-  });
+    function renderProjects(loc){
+      activeAlbum = loc;
+      subAlbumGrid.innerHTML = "";
+      loc.projects.forEach(function(proj, i){
+        var cover = src(proj.photos[0]);
+        var card = document.createElement("div");
+        card.className = "album-card reveal";
+        card.setAttribute("data-project", i);
+        card.innerHTML =
+          '<img src="'+cover+'" alt="'+loc.name+' '+proj.name+'" loading="lazy">' +
+          '<div class="album-label"><h4>'+proj.name+'</h4><span>' +
+          proj.photos.length + ' photos</span></div>';
+        subAlbumGrid.appendChild(card);
+      });
+      showView("projects");
+      renderCrumbs();
+      revealCards(".album-card");
+    }
+
+    function renderPhotos(loc, proj){
+      activeAlbum = loc;
+      loc.activeProjectName = proj.name;
+      activeSrcs = proj.photos.map(src);
+      photoGrid.innerHTML = "";
+      activeSrcs.forEach(function(s, i){
+        var item = document.createElement("div");
+        item.className = "proj-item reveal";
+        item.setAttribute("data-index", i);
+        item.innerHTML = '<img src="'+s+'" alt="'+loc.name+' '+proj.name+' photo '+(i+1)+'" loading="lazy"><span class="plus"></span>';
+        photoGrid.appendChild(item);
+      });
+      showView("photos");
+      renderCrumbs();
+      revealCards(".proj-item");
+    }
+
+    albumGrid.addEventListener("click", function(e){
+      var card = e.target.closest(".album-card");
+      if (!card) return;
+      var loc = ALBUMS[parseInt(card.getAttribute("data-album"), 10)];
+      renderProjects(loc);
+    });
+
+    subAlbumGrid.addEventListener("click", function(e){
+      var card = e.target.closest(".album-card");
+      if (!card || !activeAlbum) return;
+      var proj = activeAlbum.projects[parseInt(card.getAttribute("data-project"), 10)];
+      renderPhotos(activeAlbum, proj);
+    });
+
+    crumbs.addEventListener("click", function(e){
+      var btn = e.target.closest("button[data-nav]");
+      if (!btn) return;
+      var nav = btn.getAttribute("data-nav");
+      if (nav === "albums"){
+        activeAlbum = null;
+        showView("albums");
+        renderCrumbs();
+      } else if (nav === "projects" && activeAlbum){
+        renderProjects(activeAlbum);
+      }
+    });
+
+    function openLightbox(i){
+      lbIndex = i;
+      lbImg.src = activeSrcs[lbIndex];
+      lightbox.classList.add("is-open");
+    }
+    function closeLightbox(){ lightbox.classList.remove("is-open"); }
+    function stepLightbox(dir){
+      lbIndex = (lbIndex + dir + activeSrcs.length) % activeSrcs.length;
+      lbImg.src = activeSrcs[lbIndex];
+    }
+    photoGrid.addEventListener("click", function(e){
+      var item = e.target.closest(".proj-item");
+      if (!item) return;
+      openLightbox(parseInt(item.getAttribute("data-index"), 10));
+    });
+    document.getElementById("lbClose").addEventListener("click", closeLightbox);
+    document.getElementById("lbPrev").addEventListener("click", function(){ stepLightbox(-1); });
+    document.getElementById("lbNext").addEventListener("click", function(){ stepLightbox(1); });
+    lightbox.addEventListener("click", function(e){ if (e.target === lightbox) closeLightbox(); });
+    window.addEventListener("keydown", function(e){
+      if (!lightbox.classList.contains("is-open")) return;
+      if (e.key === "Escape") closeLightbox();
+      if (e.key === "ArrowRight") stepLightbox(1);
+      if (e.key === "ArrowLeft") stepLightbox(-1);
+    });
+
+    showView("albums");
+    renderCrumbs();
+    renderAlbums();
+  })();
 
   /* ============================================================
      CONTACT FORM
