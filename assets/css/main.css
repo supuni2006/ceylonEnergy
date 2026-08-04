@@ -174,7 +174,7 @@ section{ position: relative; }
    ========================================================= */
 .nav{
   position: fixed; top:0; left:0; right:0; z-index: 200;
-  padding: 18px 0;
+  padding: 10px 0;
   background: linear-gradient(120deg, rgba(11,53,86,0.92) 0%, rgba(14,90,143,0.9) 48%, rgba(30,147,216,0.88) 100%);
   backdrop-filter: blur(16px);
   -webkit-backdrop-filter: blur(16px);
@@ -187,27 +187,19 @@ section{ position: relative; }
   max-width: var(--container); margin: 0 auto; padding: 0 var(--edge);
 }
 .nav.is-scrolled{
-  padding: 10px 0;
+  padding: 6px 0;
   background: linear-gradient(120deg, rgba(9,44,71,0.97) 0%, rgba(12,79,127,0.96) 48%, rgba(24,128,190,0.95) 100%);
   border-bottom: 1px solid rgba(255,255,255,0.12);
   box-shadow: 0 8px 30px -14px rgba(6,31,52,0.55);
 }
+.nav.is-scrolled .brand-full-logo{ height: 52px; }
 .brand{
-  font-family: var(--font-display);
-  font-weight: 700;
-  font-size: 19px;
-  letter-spacing: -0.01em;
-  color: #ffffff;
-  display:flex; align-items:center; gap:10px;
+  display:flex; align-items:center;
 }
-.brand .mark{
-  width: 9px; height: 9px; border-radius: 50%;
-  background: var(--gold);
-  box-shadow: 0 0 12px 2px var(--gold);
-}
-.brand small{
-  display:block; font-family: var(--font-mono); font-size: 9.5px;
-  letter-spacing: .15em; color: rgba(255,255,255,0.65); font-weight: 400; margin-top:2px;
+.brand-full-logo{
+  height: 68px;
+  width: auto;
+  display: block;
 }
 
 .nav-right{ display:flex; align-items:center; gap: 30px; }
@@ -229,23 +221,6 @@ section{ position: relative; }
 }
 .nav-links a:hover, .nav-links a.active{ color: #ffffff; }
 .nav-links a:hover::after, .nav-links a.active::after{ right:0; }
-
-.nav-logo{
-  display:flex; align-items:center; justify-content:center;
-  width: 42px; height: 42px; border-radius: 50%;
-  background: #ffffff;
-  padding: 4px;
-  box-shadow: 0 4px 16px -4px rgba(6,31,52,0.55), 0 0 0 1px rgba(255,255,255,0.35);
-  transition: transform .3s ease, box-shadow .3s ease;
-  flex-shrink: 0;
-}
-.nav-logo img{
-  width: 100%; height: 100%; object-fit: contain; border-radius: 50%;
-}
-.nav-logo:hover{
-  transform: translateY(-2px) scale(1.04);
-  box-shadow: 0 8px 20px -4px rgba(6,31,52,0.6), 0 0 0 1px rgba(255,255,255,0.5);
-}
 
 .nav-toggle{
   display:none; flex-direction:column; gap:5px;
@@ -271,7 +246,7 @@ section{ position: relative; }
   .nav-links a{ font-size: 20px; color: var(--white); }
   .nav-links a:hover, .nav-links a.active{ color: var(--teal); }
   .nav-toggle{ display:flex; }
-  .nav-logo{ width: 36px; height: 36px; }
+  .brand-full-logo{ height: 44px; }
 }
 
 /* =========================================================
