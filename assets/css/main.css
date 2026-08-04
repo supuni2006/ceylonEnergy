@@ -254,7 +254,8 @@ section{ position: relative; }
    ========================================================= */
 .hero{
   position: relative;
-  min-height: 100svh;
+  min-height: 100vh;   /* fallback for browsers that don't support svh */
+  min-height: 100svh;  /* used when supported, for accurate mobile height */
   display:flex; flex-direction:column; align-items:stretch; justify-content:center;
   overflow:hidden;
   background: var(--teal);
@@ -426,24 +427,44 @@ section{ position: relative; }
   display:grid; grid-template-columns: repeat(4, 1fr); gap: 22px;
 }
 .pkg-card{
-  position:relative; border-radius: var(--radius); overflow:hidden;
-  aspect-ratio: 3/4;
+  position:relative;
+  border-radius: var(--radius);
+  overflow:hidden;
   border: 1px solid var(--line-2);
+  background: var(--panel);
+  display:flex;
+  flex-direction:column;
+  transition: transform .35s cubic-bezier(.2,.7,.2,1), box-shadow .35s ease, border-color .35s ease;
 }
-.pkg-card img{ width:100%; height:100%; object-fit:cover; transition: transform .6s cubic-bezier(.2,.7,.2,1); }
-.pkg-card:hover img{ transform: scale(1.08); }
-.pkg-card .shade{
-  position:absolute; inset:0;
-  background: linear-gradient(180deg, transparent 30%, rgba(6,38,63,0.92) 100%);
+.pkg-card:hover{
+  transform: translateY(-6px);
+  box-shadow: 0 24px 48px -24px rgba(6,38,63,0.4);
+  border-color: var(--gold);
 }
-.pkg-card .info{
-  position:absolute; left:0; right:0; bottom:0; padding: 20px;
+.pkg-media{
+  position:relative;
+  width:100%;
+  aspect-ratio: 3/4;
+  overflow:hidden;
+  background: var(--panel-2);
 }
-.pkg-card .info span{
-  font-family: var(--font-mono); font-size: 10.5px; color: var(--gold); letter-spacing:.1em; text-transform:uppercase;
+.pkg-media img{
+  width:100%; height:100%;
+  object-fit: contain;   /* show the full poster, nothing cropped */
+  object-position: center;
+  display:block;
+  transition: transform .6s cubic-bezier(.2,.7,.2,1);
+}
+.pkg-card:hover .pkg-media img{ transform: scale(1.03); }
+.pkg-info{
+  padding: 18px 20px 22px;
+  border-top: 1px solid var(--line);
+}
+.pkg-info .pkg-num{
+  font-family: var(--font-mono); font-size: 10.5px; color: var(--gold); letter-spacing:.14em; text-transform:uppercase;
   display:block; margin-bottom: 6px;
 }
-.pkg-card .info h5{ margin:0; font-size: 17px; color: var(--white); font-family: var(--font-display); }
+.pkg-info h5{ margin:0; font-size: 17px; color: var(--white); font-family: var(--font-display); }
 
 @media (max-width: 900px){ .pkg-rail{ grid-template-columns: repeat(2,1fr); } }
 @media (max-width: 520px){ .pkg-rail{ grid-template-columns: 1fr; } }
