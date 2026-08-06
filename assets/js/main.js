@@ -563,7 +563,7 @@
   var overlay = document.getElementById("pvOverlay");
   if (!overlay) return;
 
-  var openBtn = document.getElementById("cpOpenBtn");
+  var openBtns = [document.getElementById("cpOpenBtn"), document.getElementById("cpOpenBtn2")];
   var closeBtn = document.getElementById("pvClose");
   var prevBtn = document.getElementById("pvPrev");
   var nextBtn = document.getElementById("pvNext");
@@ -571,7 +571,6 @@
   var count = document.getElementById("pvCount");
   var thumbsWrap = document.getElementById("pvThumbs");
   var downloadPageLink = document.getElementById("pvDownloadPage");
-  var cpGrid = document.getElementById("cpGrid");
 
   var current = 1;
   var thumbEls = [];
@@ -592,64 +591,6 @@
         thumbsWrap.appendChild(t);
         thumbEls.push(t);
       })(i);
-    }
-  }
-
-  /* NEW: build the on-page thumbnail grid, each item openable + individually downloadable */
-  function buildGrid(){
-    if (!cpGrid) return;
-    for (var i = 1; i <= TOTAL_PAGES; i++){
-      (function(n){
-        var item = document.createElement("div");
-        item.className = "cp-item reveal";
-
-        var media = document.createElement("div");
-        media.className = "cp-item-media";
-        media.setAttribute("role", "button");
-        media.setAttribute("tabindex", "0");
-        media.setAttribute("aria-label", "Open page " + n + " in viewer");
-
-        var image = document.createElement("img");
-        image.src = pageSrc(n);
-        image.loading = "lazy";
-        image.alt = "Company profile — page " + n;
-        media.appendChild(image);
-
-        var dl = document.createElement("a");
-        dl.className = "cp-dl-btn";
-        dl.href = pageSrc(n);
-        dl.setAttribute("download", "Ceylon-Energy-Company-Profile-Page-" + pad(n) + ".jpg");
-        dl.setAttribute("aria-label", "Download page " + n);
-        dl.innerHTML = '<i class="budicon-download"></i>';
-        // stop the click from also opening the viewer
-        dl.addEventListener("click", function(e){ e.stopPropagation(); });
-        media.appendChild(dl);
-
-        var label = document.createElement("span");
-        label.className = "cp-item-label";
-        label.textContent = "Page " + n + " / " + TOTAL_PAGES;
-
-        media.addEventListener("click", function(){ openViewer(n); });
-        media.addEventListener("keydown", function(e){
-          if (e.key === "Enter" || e.key === " "){ e.preventDefault(); openViewer(n); }
-        });
-
-        item.appendChild(media);
-        item.appendChild(label);
-        cpGrid.appendChild(item);
-      })(i);
-    }
-
-    // trigger scroll-reveal for the newly added cards
-    if (window.gsap && window.ScrollTrigger) {
-      gsap.utils.toArray(".cp-item").forEach(function(el, i){
-        gsap.fromTo(el, { opacity: 0, y: 20 }, {
-          opacity: 1, y: 0, duration: 0.6, ease: "power2.out", delay: (i % 4) * 0.05,
-          scrollTrigger: { trigger: el, start: "top 95%" }
-        });
-      });
-    } else {
-      cpGrid.querySelectorAll(".cp-item").forEach(function(el){ el.style.opacity = 1; });
     }
   }
 
@@ -687,7 +628,13 @@
     document.body.style.overflow = "";
   }
 
-  if (openBtn) openBtn.addEventListener("click", function(){ openViewer(1); });
+  openBtns.forEach(function(btn){
+    if (!btn) return;
+    btn.addEventListener("click", function(){ openViewer(1); });
+    btn.addEventListener("keydown", function(e){
+      if (e.key === "Enter" || e.key === " "){ e.preventDefault(); openViewer(1); }
+    });
+  });
   closeBtn.addEventListener("click", closeViewer);
   overlay.addEventListener("click", function(e){
     if (e.target === overlay) closeViewer();
@@ -712,6 +659,4 @@
     if (Math.abs(dx) > 40) goTo(current + (dx < 0 ? 1 : -1));
     touchStartX = null;
   }, { passive: true });
-
-  buildGrid();
 })();

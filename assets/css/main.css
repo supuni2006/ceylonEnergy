@@ -827,3 +827,101 @@ footer.site-footer{ background: var(--teal); border-top: 1px solid var(--teal); 
 
 @media (max-width: 900px){ .cp-grid{ grid-template-columns: repeat(3,1fr); } }
 @media (max-width: 640px){ .cp-grid{ grid-template-columns: repeat(2,1fr); } }
+
+/* =========================================================
+   COMPANY PROFILE — full-screen page viewer modal
+   (this block was missing, which let the modal render
+   in normal page flow instead of as a fixed overlay —
+   the root cause of the broken/ballooned scrolling)
+   ========================================================= */
+.pv-overlay{
+  display:none;
+  position: fixed; inset: 0; z-index: 1200;
+  background: rgba(6,20,34,0.94);
+  flex-direction: column;
+  opacity: 0;
+  transition: opacity .25s ease;
+}
+.pv-overlay.is-open{
+  display:flex;
+  opacity: 1;
+}
+.pv-top{
+  display:flex; align-items:center; justify-content:space-between;
+  gap:16px; padding: 16px 20px; flex: 0 0 auto;
+  border-bottom: 1px solid rgba(255,255,255,0.1);
+}
+.pv-title{
+  color:#fff; font-family: var(--font-mono); font-size:13px; letter-spacing:.05em;
+  display:flex; align-items:center; gap:10px; flex-wrap:wrap;
+}
+.pv-count{ color: var(--sage-dim); }
+.pv-actions{ display:flex; align-items:center; gap:12px; }
+.pv-btn{
+  display:inline-flex; align-items:center; gap:8px;
+  font-family: var(--font-mono); font-size:12px; letter-spacing:.05em;
+  padding: 8px 14px; border-radius: 30px; text-decoration:none;
+  border: 1px solid rgba(255,255,255,0.25); color:#fff;
+  background: transparent; cursor:pointer; white-space:nowrap;
+}
+.pv-btn-ghost:hover{ border-color: var(--gold); color: var(--gold); }
+.pv-btn-solid{ background: var(--gold); border-color: var(--gold); color:#0b3556; }
+.pv-btn-solid:hover{ opacity:.9; }
+.pv-close{
+  width: 36px; height:36px; border-radius:50%; border:1px solid rgba(255,255,255,0.25);
+  background: transparent; color:#fff; font-size:16px; cursor:pointer; flex: 0 0 auto;
+}
+.pv-close:hover{ border-color: var(--gold); color: var(--gold); }
+
+.pv-stage{
+  flex: 1 1 auto;
+  display:flex; align-items:center; justify-content:center;
+  gap: 12px; padding: 12px 16px;
+  min-height: 0;
+}
+.pv-image-wrap{
+  flex: 1 1 auto; height: 100%;
+  display:flex; align-items:center; justify-content:center;
+  min-width: 0; min-height: 0;
+}
+.pv-image-wrap img{
+  max-width: 100%; max-height: 100%;
+  width: auto; height: auto;
+  object-fit: contain;
+  border-radius: 6px;
+  box-shadow: 0 20px 60px rgba(0,0,0,0.5);
+}
+.pv-nav{
+  flex: 0 0 auto;
+  width: 44px; height: 44px; border-radius:50%;
+  border: 1px solid rgba(255,255,255,0.25);
+  background: rgba(255,255,255,0.05); color:#fff;
+  font-size: 22px; line-height:1; cursor:pointer;
+}
+.pv-nav:hover{ border-color: var(--gold); color: var(--gold); }
+.pv-nav:disabled{ opacity:.3; cursor:default; }
+
+.pv-bottom{
+  flex: 0 0 auto;
+  display:flex; align-items:center; gap:16px;
+  padding: 14px 20px; flex-wrap:wrap;
+  border-top: 1px solid rgba(255,255,255,0.1);
+}
+.pv-thumbs{
+  flex: 1 1 auto; display:flex; gap:8px; overflow-x:auto;
+  padding-bottom: 4px; scrollbar-width: thin;
+}
+.pv-thumb{
+  flex: 0 0 auto; width:52px; height:70px; border-radius:4px; overflow:hidden;
+  cursor:pointer; opacity:.5; border: 2px solid transparent; transition: opacity .2s ease, border-color .2s ease;
+}
+.pv-thumb img{ width:100%; height:100%; object-fit:cover; }
+.pv-thumb:hover{ opacity:.85; }
+.pv-thumb.is-active{ opacity:1; border-color: var(--gold); }
+
+@media (max-width: 640px){
+  .pv-stage{ padding: 8px; gap:6px; }
+  .pv-nav{ width:36px; height:36px; font-size:18px; }
+  .pv-bottom{ padding: 10px 12px; }
+  .pv-title{ font-size:12px; }
+}
