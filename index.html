@@ -236,12 +236,12 @@
       <h2 class="section-title reveal">Company Profile</h2>
       <p class="lede reveal">Flip through our full company profile below, or download any page — or the entire document — for your own records.</p>
     </div>
-    <div class="cp-launch reveal">
-      <div class="cp-launch-thumb" id="cpLaunch" tabindex="0" role="button" aria-label="Open company profile viewer">
-        <img src="assets/images/company-profile/page-01.jpg" alt="Ceylon Energy &amp; Engineering Services company profile cover">
-        <span class="cp-launch-badge"><i class="budicon-document"></i> 23 Pages</span>
-        <span class="cp-launch-cta">View Full Profile</span>
-      </div>
+    <div class="cp-toolbar reveal">
+      <a href="assets/docs/Ceylon-Energy-Company-Profile.pdf" download class="btn"><span><i class="budicon-cloud-download"></i> Download Full PDF</span></a>
+      <button class="btn btn-ghost" id="cpOpenBtn"><span><i class="budicon-document"></i> Open Page Viewer</span></button>
+    </div>
+
+<div class="cp-grid" id="cpGrid" aria-label="Company profile pages"></div>
       <div class="cp-launch-actions">
         <button class="btn" id="cpOpenBtn"><span><i class="budicon-document"></i> View Company Profile</span></button>
         <a href="assets/docs/Ceylon-Energy-Company-Profile.pdf" download class="btn btn-ghost"><span><i class="budicon-cloud-download"></i> Download Full PDF</span></a>
