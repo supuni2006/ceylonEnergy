@@ -33,6 +33,7 @@
         <li><a href="#what-we-do">Services</a></li>
         <li><a href="#our-packages">Packages</a></li>
         <li><a href="#our-projects">Projects</a></li>
+        <li><a href="#company-profile">Company Profile</a></li>
         <li><a href="#contact">Contact</a></li>
       </ul>
       <a href="https://ceylon-crm.vercel.app/#/" target="_blank" rel="noopener" class="nav-crm-btn"><span class="crm-label">CRM</span> <span class="crm-arrow">&#8594;</span></a>
@@ -225,6 +226,50 @@
   <button class="lightbox-nav prev" id="lbPrev" aria-label="Previous">‹</button>
   <img id="lbImg" src="" alt="Project photo">
   <button class="lightbox-nav next" id="lbNext" aria-label="Next">›</button>
+</div>
+
+<!-- ============ COMPANY PROFILE ============ -->
+<section id="company-profile" class="wrap-panel pad">
+  <div class="container">
+    <div class="section-head center">
+      <p class="eyebrow center">Read Us Cover to Cover</p>
+      <h2 class="section-title reveal">Company Profile</h2>
+      <p class="lede reveal">Flip through our full company profile below, or download any page — or the entire document — for your own records.</p>
+    </div>
+    <div class="cp-launch reveal">
+      <div class="cp-launch-thumb" id="cpLaunch" tabindex="0" role="button" aria-label="Open company profile viewer">
+        <img src="assets/images/company-profile/page-01.jpg" alt="Ceylon Energy &amp; Engineering Services company profile cover">
+        <span class="cp-launch-badge"><i class="budicon-document"></i> 23 Pages</span>
+        <span class="cp-launch-cta">View Full Profile</span>
+      </div>
+      <div class="cp-launch-actions">
+        <button class="btn" id="cpOpenBtn"><span><i class="budicon-document"></i> View Company Profile</span></button>
+        <a href="assets/docs/Ceylon-Energy-Company-Profile.pdf" download class="btn btn-ghost"><span><i class="budicon-cloud-download"></i> Download Full PDF</span></a>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- company profile page-by-page viewer -->
+<div class="pv-overlay" id="pvOverlay" aria-hidden="true">
+  <div class="pv-top">
+    <div class="pv-title">Company Profile <span class="pv-count" id="pvCount">Page 1 / 23</span></div>
+    <div class="pv-actions">
+      <a href="assets/docs/Ceylon-Energy-Company-Profile.pdf" download class="pv-btn pv-btn-ghost"><i class="budicon-cloud-download"></i> Full PDF</a>
+      <button class="pv-close" id="pvClose" aria-label="Close viewer">✕</button>
+    </div>
+  </div>
+  <div class="pv-stage">
+    <button class="pv-nav prev" id="pvPrev" aria-label="Previous page">‹</button>
+    <div class="pv-image-wrap">
+      <img id="pvImage" src="" alt="Company profile page">
+    </div>
+    <button class="pv-nav next" id="pvNext" aria-label="Next page">›</button>
+  </div>
+  <div class="pv-bottom">
+    <a href="#" download id="pvDownloadPage" class="pv-btn pv-btn-solid"><i class="budicon-download"></i> Download This Page</a>
+    <div class="pv-thumbs" id="pvThumbs"></div>
+  </div>
 </div>
 
 <!-- ============ CONTACT ============ -->

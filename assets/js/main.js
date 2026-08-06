@@ -551,3 +551,118 @@
   })();
 
 })();
+
+/* ==========================================================================
+   COMPANY PROFILE — page-by-page viewer
+   ========================================================================== */
+(function(){
+  "use strict";
+
+  var TOTAL_PAGES = 23;
+  var IMG_PATH = "assets/images/company-profile/";
+  var pad = function(n){ return n < 10 ? "0" + n : "" + n; };
+  var pageSrc = function(n){ return IMG_PATH + "page-" + pad(n) + ".jpg"; };
+
+  var overlay = document.getElementById("pvOverlay");
+  if (!overlay) return;
+
+  var openBtn = document.getElementById("cpOpenBtn");
+  var launchThumb = document.getElementById("cpLaunch");
+  var closeBtn = document.getElementById("pvClose");
+  var prevBtn = document.getElementById("pvPrev");
+  var nextBtn = document.getElementById("pvNext");
+  var img = document.getElementById("pvImage");
+  var count = document.getElementById("pvCount");
+  var thumbsWrap = document.getElementById("pvThumbs");
+  var downloadPageLink = document.getElementById("pvDownloadPage");
+
+  var current = 1;
+  var thumbEls = [];
+
+  function buildThumbs(){
+    for (var i = 1; i <= TOTAL_PAGES; i++){
+      (function(n){
+        var t = document.createElement("div");
+        t.className = "pv-thumb";
+        t.setAttribute("role", "button");
+        t.setAttribute("aria-label", "Go to page " + n);
+        var ti = document.createElement("img");
+        ti.src = pageSrc(n);
+        ti.loading = "lazy";
+        ti.alt = "Page " + n + " thumbnail";
+        t.appendChild(ti);
+        t.addEventListener("click", function(){ goTo(n); });
+        thumbsWrap.appendChild(t);
+        thumbEls.push(t);
+      })(i);
+    }
+  }
+
+  function goTo(n){
+    if (n < 1) n = 1;
+    if (n > TOTAL_PAGES) n = TOTAL_PAGES;
+    current = n;
+    img.src = pageSrc(current);
+    img.alt = "Ceylon Energy & Engineering Services company profile — page " + current;
+    count.textContent = "Page " + current + " / " + TOTAL_PAGES;
+    downloadPageLink.href = pageSrc(current);
+    downloadPageLink.setAttribute("download", "Ceylon-Energy-Company-Profile-Page-" + pad(current) + ".jpg");
+    prevBtn.disabled = current === 1;
+    nextBtn.disabled = current === TOTAL_PAGES;
+    for (var i = 0; i < thumbEls.length; i++){
+      thumbEls[i].classList.toggle("is-active", i + 1 === current);
+    }
+    var active = thumbEls[current - 1];
+    if (active && active.scrollIntoView){
+      active.scrollIntoView({ behavior: "smooth", inline: "center", block: "nearest" });
+    }
+  }
+
+  function openViewer(startPage){
+    if (!thumbEls.length) buildThumbs();
+    goTo(startPage || 1);
+    overlay.classList.add("is-open");
+    overlay.setAttribute("aria-hidden", "false");
+    document.body.style.overflow = "hidden";
+  }
+
+  function closeViewer(){
+    overlay.classList.remove("is-open");
+    overlay.setAttribute("aria-hidden", "true");
+    document.body.style.overflow = "";
+  }
+
+  if (openBtn) openBtn.addEventListener("click", function(){ openViewer(1); });
+  if (launchThumb){
+    launchThumb.addEventListener("click", function(){ openViewer(1); });
+    launchThumb.addEventListener("keydown", function(e){
+      if (e.key === "Enter" || e.key === " "){ e.preventDefault(); openViewer(1); }
+    });
+  }
+  closeBtn.addEventListener("click", closeViewer);
+  overlay.addEventListener("click", function(e){
+    if (e.target === overlay) closeViewer();
+  });
+  prevBtn.addEventListener("click", function(){ goTo(current - 1); });
+  nextBtn.addEventListener("click", function(){ goTo(current + 1); });
+
+  document.addEventListener("keydown", function(e){
+    if (!overlay.classList.contains("is-open")) return;
+    if (e.key === "Escape") closeViewer();
+    if (e.key === "ArrowLeft") goTo(current - 1);
+    if (e.key === "ArrowRight") goTo(current + 1);
+  });
+
+  // basic swipe support on mobile
+  var touchStartX = null;
+  overlay.addEventListener("touchstart", function(e){
+    touchStartX = e.touches[0].clientX;
+  }, { passive: true });
+  overlay.addEventListener("touchend", function(e){
+    if (touchStartX === null) return;
+    var dx = e.changedTouches[0].clientX - touchStartX;
+    if (Math.abs(dx) > 40) goTo(current + (dx < 0 ? 1 : -1));
+    touchStartX = null;
+  }, { passive: true });
+
+})();
