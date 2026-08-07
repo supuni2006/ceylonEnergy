@@ -243,7 +243,7 @@ section{ position: relative; }
   display: block;
 }
 
-.nav-right{ display:flex; align-items:center; gap: 30px; }
+.nav-right{ display:flex; align-items:center; gap: 30px; margin-right: -20px; }
 
 .nav-links{ display:flex; align-items:center; gap: 34px; }
 .nav-links a{
