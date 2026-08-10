@@ -438,6 +438,42 @@ section{ position: relative; }
   .about-facts{ grid-template-columns: 1fr 1fr; }
 }
 
+/* ---------- solar system types (on-grid / off-grid / hybrid) ---------- */
+.solar-types{ margin-top: clamp(56px, 8vw, 96px); }
+.solar-types-title{ font-size: clamp(22px, 2.6vw, 28px); }
+.solar-types-grid{
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 22px;
+}
+.solar-type-card{
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  padding: 28px 24px;
+  transition: border-color .3s ease, transform .3s ease, box-shadow .3s ease;
+}
+.solar-type-card:hover{
+  border-color: var(--gold);
+  transform: translateY(-4px);
+  box-shadow: 0 20px 40px -26px rgba(6,38,63,0.4);
+}
+.st-icon-wrap{
+  width: 46px; height: 46px;
+  display: flex; align-items: center; justify-content: center;
+  background: var(--teal);
+  color: var(--gold-dim);
+  border-radius: 50%;
+  margin-bottom: 18px;
+}
+.st-icon-wrap svg{ width: 22px; height: 22px; }
+.solar-type-card h4{ font-size: 16px; margin-bottom: 8px; }
+.solar-type-card p{ font-size: 13.5px; color: var(--sage); line-height: 1.6; margin: 0; }
+
+@media (max-width: 860px){
+  .solar-types-grid{ grid-template-columns: 1fr; }
+}
+
 /* =========================================================
    PRODUCTS — brands installed
    ========================================================= */
@@ -518,6 +554,7 @@ section{ position: relative; }
   color: #ffffff;
   background: var(--teal);
 }
+.chip-mark svg{ width: 12px; height: 12px; }
 .chip-name{ line-height: 1; }
 
 /* real logo image — hidden until it successfully loads (see onload/onerror
