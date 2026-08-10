@@ -439,46 +439,130 @@ section{ position: relative; }
 }
 
 /* =========================================================
-   WHAT WE DO
+   PRODUCTS — brands installed
    ========================================================= */
-.wwd-grid{
-  display:grid; grid-template-columns: repeat(3, 1fr); gap:1px;
-  background: var(--line);
-  border: 1px solid var(--line);
+.brand-groups{
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
 }
-.wwd-card{
+.brand-row{
+  display: flex;
+  align-items: stretch;
   background: var(--panel);
-  padding: 44px 30px;
-  position: relative;
-  overflow:hidden;
-  transform-style: preserve-3d;
-  perspective: 800px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  overflow: hidden;
+  transition: box-shadow .35s ease, border-color .35s ease, transform .35s ease;
 }
-.wwd-card .num{
-  font-family: var(--font-mono); font-size: 11px; color: var(--sage-dim); letter-spacing:.1em;
-  margin-bottom: 26px; display:block;
+.brand-row:hover{
+  box-shadow: 0 20px 40px -26px rgba(6,38,63,0.4);
+  border-color: var(--gold);
+  transform: translateX(4px);
 }
-.wwd-card .ic{
-  width: 54px; height:54px; margin-bottom: 22px;
-  transition: transform .4s ease, filter .35s ease;
+.brand-tag{
+  flex: 0 0 210px;
+  background: var(--teal);
+  color: #fff;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 18px 16px 18px 24px;
+  clip-path: polygon(0 0, 100% 0, 86% 100%, 0 100%);
 }
-.wwd-card:hover .ic{
-  transform: translateY(-4px) scale(1.05);
-  filter: drop-shadow(0 6px 14px rgba(30,147,216,0.35));
+.brand-tag svg{ width: 28px; height: 28px; flex-shrink: 0; }
+.brand-tag span{
+  font-family: var(--font-display);
+  font-size: 13px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: .02em;
+  line-height: 1.25;
 }
-.wwd-card h4{
-  font-size: 18px; text-transform: uppercase; letter-spacing: .02em; margin-bottom:10px;
+.brand-list{
+  flex: 1;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px 12px;
+  padding: 18px 26px 18px 44px;
 }
-.wwd-card p{ font-size: 14px; margin:0; }
-.wwd-card::after{
-  content:''; position:absolute; left:0; top:0; height:2px; width:0%;
-  background: var(--gold);
-  transition: width .45s cubic-bezier(.65,0,.35,1);
+.brand-chip{
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-family: var(--font-mono);
+  font-size: 12.5px;
+  letter-spacing: .02em;
+  color: var(--white);
+  background: var(--panel-2);
+  border: 1px solid var(--line-2);
+  padding: 6px 14px 6px 6px;
+  border-radius: 999px;
+  white-space: nowrap;
+  transition: border-color .3s ease, background .3s ease, transform .3s ease;
 }
-.wwd-card:hover::after{ width:100%; }
+.brand-row:hover .brand-chip{ border-color: var(--gold); background: var(--gold-dim); }
+.brand-chip:hover{ transform: translateY(-2px); }
 
-@media (max-width: 900px){ .wwd-grid{ grid-template-columns: repeat(2,1fr);} }
-@media (max-width: 560px){ .wwd-grid{ grid-template-columns: 1fr;} }
+/* logo-style monogram mark, colour cycles per chip for a distinct "brand wall" feel */
+.chip-mark{
+  flex: 0 0 auto;
+  width: 24px; height: 24px;
+  border-radius: 50%;
+  display: inline-flex; align-items:center; justify-content:center;
+  font-family: var(--font-display);
+  font-size: 9.5px;
+  font-weight: 700;
+  letter-spacing: 0;
+  color: #ffffff;
+  background: var(--teal);
+}
+.chip-name{ line-height: 1; }
+
+.brand-chip:nth-child(6n+1) .chip-mark{ background: #1e93d8; }
+.brand-chip:nth-child(6n+2) .chip-mark{ background: #0b4c7c; }
+.brand-chip:nth-child(6n+3) .chip-mark{ background: #2fae82; }
+.brand-chip:nth-child(6n+4) .chip-mark{ background: #e0a83e; }
+.brand-chip:nth-child(6n+5) .chip-mark{ background: #6c63d1; }
+.brand-chip:nth-child(6n+6) .chip-mark{ background: #d9694f; }
+
+.products-highlights{
+  margin-top: 28px;
+  background: var(--teal);
+  border-radius: var(--radius);
+  display: flex;
+  flex-wrap: wrap;
+  gap: 18px 26px;
+  padding: 24px 30px;
+}
+.products-highlights .hl{
+  flex: 1 1 210px;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  color: #fff;
+}
+.products-highlights .hl svg{ width: 26px; height: 26px; flex-shrink: 0; color: var(--gold-dim); }
+.products-highlights .hl b{
+  display: block;
+  font-family: var(--font-display);
+  font-size: 13.5px;
+  font-weight: 600;
+  margin-bottom: 2px;
+}
+.products-highlights .hl div{ font-size: 12.5px; color: var(--gold-dim); line-height: 1.35; }
+
+@media (max-width: 700px){
+  .brand-tag{ flex-basis: 160px; padding: 14px 10px 14px 18px; clip-path: polygon(0 0, 100% 0, 80% 100%, 0 100%); }
+  .brand-tag span{ font-size: 11.5px; }
+  .brand-list{ padding-left: 30px; }
+}
+@media (max-width: 520px){
+  .brand-row{ flex-direction: column; }
+  .brand-tag{ clip-path: none; flex-basis: auto; }
+  .brand-list{ padding: 14px 18px; }
+}
 
 /* =========================================================
    PACKAGES
