@@ -217,11 +217,26 @@ section{ position: relative; }
   position: fixed; top:0; left:0; right:0; z-index: 200;
   padding: 10px 0;
   background: linear-gradient(120deg, rgba(11,53,86,0.92) 0%, rgba(14,90,143,0.9) 48%, rgba(30,147,216,0.88) 100%);
-  backdrop-filter: blur(16px);
-  -webkit-backdrop-filter: blur(16px);
   border-bottom: 1px solid rgba(255,255,255,0.15);
   box-shadow: 0 10px 34px -16px rgba(6,31,52,0.45);
   transition: padding .35s ease, background .35s ease, border-color .35s ease, box-shadow .35s ease;
+  isolation: isolate;
+}
+/* Blur lives on a pseudo-element rather than directly on .nav. A filter/backdrop-filter
+   on an element makes it the containing block for any position:fixed descendant — that
+   was pulling the mobile #navLinks off-canvas panel out of the viewport and anchoring it
+   to .nav's own (much shorter) box instead, which is why the menu items were rendering
+   with no backdrop and overlapping the hero/section content beneath them. Putting the
+   blur on ::before keeps .nav filter-free so fixed descendants stay relative to the
+   viewport, where they belong. */
+.nav::before{
+  content: "";
+  position: absolute;
+  inset: 0;
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  z-index: -1;
+  pointer-events: none;
 }
 .nav-inner{
   display:flex; align-items:center; justify-content:space-between;
