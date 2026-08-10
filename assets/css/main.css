@@ -520,6 +520,21 @@ section{ position: relative; }
 }
 .chip-name{ line-height: 1; }
 
+/* real logo image — hidden until it successfully loads (see onload/onerror
+   in the markup), so a missing file just falls back to the monogram+name */
+.chip-logo{
+  display: none;
+  height: 20px;
+  width: auto;
+  max-width: 108px;
+  object-fit: contain;
+  flex: 0 0 auto;
+}
+.brand-chip.has-logo{ padding: 6px 14px; background: #ffffff; }
+.brand-chip.has-logo .chip-logo{ display: block; }
+.brand-chip.has-logo .chip-mark,
+.brand-chip.has-logo .chip-name{ display: none; }
+
 .brand-chip:nth-child(6n+1) .chip-mark{ background: #1e93d8; }
 .brand-chip:nth-child(6n+2) .chip-mark{ background: #0b4c7c; }
 .brand-chip:nth-child(6n+3) .chip-mark{ background: #2fae82; }
