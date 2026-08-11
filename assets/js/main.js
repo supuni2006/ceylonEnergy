@@ -101,6 +101,15 @@
 
   /* ============================================================
      GSAP SCROLL REVEALS
+     ============================================================
+     If gsap/ScrollTrigger fail to load (CDN outage, ad blocker,
+     offline network, etc.), every ".reveal"/".wwd-card"/".pkg-card"
+     element would otherwise stay permanently invisible, since the
+     CSS default is opacity:0 and only the GSAP tween ever sets it
+     back to 1. The "else" branch below is the fallback that was
+     missing here (the gallery's revealCards() below already had
+     the equivalent fallback) — it just shows everything immediately,
+     without the scroll animation, so content is never lost.
      ============================================================ */
   if (window.gsap && window.ScrollTrigger) {
     gsap.registerPlugin(ScrollTrigger);
@@ -133,6 +142,10 @@
       .to(lines, { yPercent: 0, duration: 1, ease: "power4.out", stagger: 0.12 })
       .from(".hero .eyebrow", { opacity: 0, y: -10, duration: 0.6 }, 0)
       .from(".hero-sub, .hero-cta, .hero-stats", { opacity: 0, y: 18, duration: 0.8, stagger: 0.08 }, "-=0.5");
+  } else {
+    document.querySelectorAll(".reveal, .wwd-card, .pkg-card").forEach(function(el){
+      el.style.opacity = 1;
+    });
   }
 
   /* ============================================================
@@ -555,15 +568,23 @@
 (function(){
   "use strict";
 
-  var TOTAL_PAGES = 23;
-  var IMG_PATH = "assets/images/company-profile/";
+  // ---- the main hero profile (unchanged files/paths) ----------------------
+  var MAIN_DOC = {
+    id: "main",
+    title: "Attatchments",
+    imgPath: "assets/images/company-profile/",
+    pdfPath: "assets/docs/Ceylon-Energy-Company-Profile.pdf",
+    pageCount: 23 // fallback until profile-meta.json loads
+  };
+  var META_PATH = "assets/docs/profile-meta.json";
+  var ATTACHMENTS_JSON_PATH = "assets/docs/attachments.json";
+
   var pad = function(n){ return n < 10 ? "0" + n : "" + n; };
-  var pageSrc = function(n){ return IMG_PATH + "page-" + pad(n) + ".jpg"; };
+  var pageSrc = function(doc, n){ return doc.imgPath + "page-" + pad(n) + ".jpg"; };
 
   var overlay = document.getElementById("pvOverlay");
   if (!overlay) return;
 
-  var openBtns = [document.getElementById("cpOpenBtn"), document.getElementById("cpOpenBtn2")];
   var closeBtn = document.getElementById("pvClose");
   var prevBtn = document.getElementById("pvPrev");
   var nextBtn = document.getElementById("pvNext");
@@ -571,19 +592,40 @@
   var count = document.getElementById("pvCount");
   var thumbsWrap = document.getElementById("pvThumbs");
   var downloadPageLink = document.getElementById("pvDownloadPage");
+  var downloadFullLink = document.getElementById("pvDownloadFull");
+  var docTitleEl = document.getElementById("pvDocTitle");
+  var pageBadge = document.getElementById("cpPageBadge");
+  var grid = document.getElementById("cpAttachmentsGrid");
+  var moreToolbar = document.getElementById("cpMoreToolbar");
 
+  var activeDoc = MAIN_DOC;
   var current = 1;
   var thumbEls = [];
 
-  function buildThumbs(){
-    for (var i = 1; i <= TOTAL_PAGES; i++){
+  function applyMainPageCount(n){
+    if (!n || n < 1) return;
+    MAIN_DOC.pageCount = n;
+    if (pageBadge) pageBadge.textContent = n + (n === 1 ? " page" : " pages");
+  }
+
+  if (window.fetch){
+    fetch(META_PATH, { cache: "no-store" })
+      .then(function(r){ return r.ok ? r.json() : null; })
+      .then(function(data){ if (data && data.pageCount) applyMainPageCount(data.pageCount); })
+      .catch(function(){ /* keep fallback page count */ });
+  }
+
+  function buildThumbs(doc){
+    thumbsWrap.innerHTML = "";
+    thumbEls = [];
+    for (var i = 1; i <= doc.pageCount; i++){
       (function(n){
         var t = document.createElement("div");
         t.className = "pv-thumb";
         t.setAttribute("role", "button");
         t.setAttribute("aria-label", "Go to page " + n);
         var ti = document.createElement("img");
-        ti.src = pageSrc(n);
+        ti.src = pageSrc(doc, n);
         ti.loading = "lazy";
         ti.alt = "Page " + n + " thumbnail";
         t.appendChild(ti);
@@ -596,15 +638,15 @@
 
   function goTo(n){
     if (n < 1) n = 1;
-    if (n > TOTAL_PAGES) n = TOTAL_PAGES;
+    if (n > activeDoc.pageCount) n = activeDoc.pageCount;
     current = n;
-    img.src = pageSrc(current);
-    img.alt = "Ceylon Energy & Engineering Services company profile — page " + current;
-    count.textContent = "Page " + current + " / " + TOTAL_PAGES;
-    downloadPageLink.href = pageSrc(current);
-    downloadPageLink.setAttribute("download", "Ceylon-Energy-Company-Profile-Page-" + pad(current) + ".jpg");
+    img.src = pageSrc(activeDoc, current);
+    img.alt = activeDoc.title + " — page " + current;
+    count.textContent = "Page " + current + " / " + activeDoc.pageCount;
+    downloadPageLink.href = pageSrc(activeDoc, current);
+    downloadPageLink.setAttribute("download", activeDoc.title.replace(/[^a-z0-9]+/gi, "-") + "-Page-" + pad(current) + ".jpg");
     prevBtn.disabled = current === 1;
-    nextBtn.disabled = current === TOTAL_PAGES;
+    nextBtn.disabled = current === activeDoc.pageCount;
     for (var i = 0; i < thumbEls.length; i++){
       thumbEls[i].classList.toggle("is-active", i + 1 === current);
     }
@@ -614,8 +656,11 @@
     }
   }
 
-  function openViewer(startPage){
-    if (!thumbEls.length) buildThumbs();
+  function openViewer(doc, startPage){
+    activeDoc = doc;
+    if (docTitleEl) docTitleEl.textContent = doc.title;
+    if (downloadFullLink) downloadFullLink.href = doc.pdfPath;
+    buildThumbs(doc);
     goTo(startPage || 1);
     overlay.classList.add("is-open");
     overlay.setAttribute("aria-hidden", "false");
@@ -628,11 +673,11 @@
     document.body.style.overflow = "";
   }
 
-  openBtns.forEach(function(btn){
+  [document.getElementById("cpOpenBtn"), document.getElementById("cpOpenBtn2")].forEach(function(btn){
     if (!btn) return;
-    btn.addEventListener("click", function(){ openViewer(1); });
+    btn.addEventListener("click", function(){ openViewer(MAIN_DOC, 1); });
     btn.addEventListener("keydown", function(e){
-      if (e.key === "Enter" || e.key === " "){ e.preventDefault(); openViewer(1); }
+      if (e.key === "Enter" || e.key === " "){ e.preventDefault(); openViewer(MAIN_DOC, 1); }
     });
   });
   closeBtn.addEventListener("click", closeViewer);
@@ -659,4 +704,79 @@
     if (Math.abs(dx) > 40) goTo(current + (dx < 0 ? 1 : -1));
     touchStartX = null;
   }, { passive: true });
+
+  // ---- additional documents, added via the admin panel --------------------
+  function renderAdditionalDocs(items){
+    if (!grid || !items || !items.length) return;
+
+    var renderedCount = 0;
+
+    items.forEach(function(item){
+      if (!item.pageCount || !item.imagesUrl) {
+        // This is exactly why a saved entry can be invisible on the site
+        // even though it's sitting in attachments.json: a malformed entry
+        // (missing pageCount or imagesUrl) is skipped here silently. Log
+        // it so it shows up in the browser console instead of just
+        // vanishing.
+        console.warn("Skipping attachment with missing pageCount/imagesUrl:", item);
+        return;
+      }
+
+      var doc = {
+        id: item.id,
+        title: item.title || "Document",
+        imgPath: item.imagesUrl,
+        pdfPath: item.url,
+        pageCount: item.pageCount
+      };
+
+      var cell = document.createElement("div");
+      cell.className = "cp-item";
+
+      var media = document.createElement("div");
+      media.className = "cp-item-media";
+      media.setAttribute("role", "button");
+      media.setAttribute("tabindex", "0");
+      media.setAttribute("aria-label", "Open " + doc.title);
+
+      var thumb = document.createElement("img");
+      thumb.src = pageSrc(doc, 1);
+      thumb.loading = "lazy";
+      thumb.alt = doc.title + " cover";
+      media.appendChild(thumb);
+
+      var dl = document.createElement("a");
+      dl.className = "cp-dl-btn";
+      dl.href = doc.pdfPath;
+      dl.setAttribute("download", "");
+      dl.setAttribute("aria-label", "Download " + doc.title + " PDF");
+      dl.innerHTML = '<i class="budicon-cloud-download"></i>';
+      dl.addEventListener("click", function(e){ e.stopPropagation(); });
+      media.appendChild(dl);
+
+      var openThis = function(){ openViewer(doc, 1); };
+      media.addEventListener("click", openThis);
+      media.addEventListener("keydown", function(e){
+        if (e.key === "Enter" || e.key === " "){ e.preventDefault(); openThis(); }
+      });
+      cell.appendChild(media);
+
+      var label = document.createElement("span");
+      label.className = "cp-item-label";
+      label.textContent = doc.title + " · " + doc.pageCount + (doc.pageCount === 1 ? " page" : " pages");
+      cell.appendChild(label);
+
+      grid.appendChild(cell);
+      renderedCount++;
+    });
+
+    if (moreToolbar) moreToolbar.hidden = renderedCount === 0;
+  }
+
+  if (window.fetch){
+    fetch(ATTACHMENTS_JSON_PATH, { cache: "no-store" })
+      .then(function(r){ return r.ok ? r.json() : null; })
+      .then(function(data){ if (Array.isArray(data)) renderAdditionalDocs(data); })
+      .catch(function(){ /* no additional documents yet */ });
+  }
 })();

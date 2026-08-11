@@ -339,7 +339,7 @@
     <div class="cp-launch reveal">
       <div class="cp-launch-thumb" id="cpOpenBtn" role="button" tabindex="0" aria-label="Open company profile page viewer">
         <img src="assets/images/company-profile/page-01.jpg" loading="lazy" alt="Ceylon Energy company profile cover">
-        <span class="cp-launch-badge"><i class="budicon-document"></i> 23 pages</span>
+        <span class="cp-launch-badge"><i class="budicon-document"></i> <span id="cpPageBadge">23 pages</span></span>
         <span class="cp-launch-cta">Click to browse the full profile</span>
       </div>
       <div>
@@ -349,15 +349,20 @@
         </div>
       </div>
     </div>
+
+    <div class="cp-toolbar" id="cpMoreToolbar" hidden>
+      <p class="lede" style="margin:0;">More documents</p>
+    </div>
+    <div class="cp-grid" id="cpAttachmentsGrid"></div>
   </div>
 </section>
 
 <!-- company profile page-by-page viewer -->
 <div class="pv-overlay" id="pvOverlay" aria-hidden="true">
   <div class="pv-top">
-    <div class="pv-title">Attatchments <span class="pv-count" id="pvCount">Page 1 / 23</span></div>
+    <div class="pv-title"><span id="pvDocTitle">Attatchments</span> <span class="pv-count" id="pvCount">Page 1 / 23</span></div>
     <div class="pv-actions">
-      <a href="assets/docs/Ceylon-Energy-Company-Profile.pdf" download class="pv-btn pv-btn-ghost"><i class="budicon-cloud-download"></i> Full PDF</a>
+      <a href="assets/docs/Ceylon-Energy-Company-Profile.pdf" download id="pvDownloadFull" class="pv-btn pv-btn-ghost"><i class="budicon-cloud-download"></i> Full PDF</a>
       <button class="pv-close" id="pvClose" aria-label="Close viewer">✕</button>
     </div>
   </div>
@@ -451,8 +456,7 @@
     </div>
   </div>
   <div class="container sub-footer">
-    <p>© 2026 Ceylon Energy Services · All rights reserved.</p>
-    <ul class="social">
+    <p>© 2026 Ceylon Energy Services · All rights reserved. · <a href="admin/" rel="nofollow" style="opacity:.55;">Admin</a></p>    <ul class="social">
       <li><a href="https://www.facebook.com/?checkpoint_src=any" aria-label="Facebook"><i class="fa fa-facebook"></i></a></li>
       <li><a href="https://www.instagram.com/ceylon_energy/" aria-label="Instagram"><i class="fa fa-instagram"></i></a></li>
     </ul>

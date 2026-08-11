@@ -907,6 +907,15 @@ footer.site-footer{ background: var(--teal); border-top: 1px solid var(--teal); 
 .cp-toolbar{
   display:flex; gap:16px; flex-wrap:wrap; margin-top: 40px; margin-bottom: 32px;
 }
+/* Author styles beat the browser's default `[hidden]{display:none}` UA
+   rule even at equal specificity, so the `display:flex` above was
+   silently cancelling the `hidden` attribute on #cpMoreToolbar — the
+   "More documents" toolbar showed immediately on page load (and stayed
+   visible even with zero extra documents) instead of waiting for JS to
+   reveal it once attachments actually exist. */
+.cp-toolbar[hidden]{
+  display:none;
+}
 
 .cp-grid{
   display:grid; grid-template-columns: repeat(4, 1fr); gap: 20px;
