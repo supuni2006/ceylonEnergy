@@ -14,8 +14,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     } else {
         $pw = (string)($_POST['password'] ?? '');
         $pw2 = (string)($_POST['password2'] ?? '');
-        if (strlen($pw) < 10) {
-            $error = 'Please choose a password of at least 10 characters.';
+        if (strlen($pw) < 4) {
+            $error = 'Please choose a password of at least 4 characters.';
         } elseif ($pw !== $pw2) {
             $error = 'Passwords do not match.';
         } else {
@@ -49,14 +49,14 @@ $csrf = ce_csrf_token();
   <form method="post" autocomplete="off">
     <input type="hidden" name="csrf" value="<?= htmlspecialchars($csrf) ?>">
     <label>New password
-      <input type="password" name="password" minlength="10" required autofocus>
+      <input type="password" name="password" minlength="4" required autofocus>
     </label>
     <label>Confirm password
-      <input type="password" name="password2" minlength="10" required>
+      <input type="password" name="password2" minlength="4" required>
     </label>
     <button class="btn" type="submit">Create Password &amp; Continue</button>
   </form>
-  <p class="fine-print">At least 10 characters. Store it somewhere safe — there's no automatic "forgot password" email; a developer can reset it by deleting <code>admin/data/auth.php</code> on the server.</p>
+  <p class="fine-print">At least 4 characters. Store it somewhere safe — there's no automatic "forgot password" email; a developer can reset it by deleting <code>admin/data/auth.php</code> on the server.</p>
 </div>
 </body>
 </html>
