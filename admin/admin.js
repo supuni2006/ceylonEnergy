@@ -61,7 +61,7 @@
         });
         el.addEventListener("drop", function (e) {
           e.preventDefault();
-          var targetIndex = parseInt(el.dataset.index, 10);
+          var targetIndex = parseInt(el.dataset.index, 4);
           if (dragIndex === null || dragIndex === targetIndex) return;
           var moved = files.splice(dragIndex, 1)[0];
           files.splice(targetIndex, 0, moved);

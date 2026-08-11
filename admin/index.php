@@ -153,8 +153,8 @@ $csrf = ce_csrf_token();
     <form method="post" action="change-password.php" autocomplete="off">
       <input type="hidden" name="csrf" value="<?= htmlspecialchars($csrf) ?>">
       <label>Current password <input type="password" name="current_password" required></label>
-      <label>New password <input type="password" name="new_password" minlength="10" required></label>
-      <label>Confirm new password <input type="password" name="new_password2" minlength="10" required></label>
+      <label>New password <input type="password" name="new_password" minlength="4" required></label>
+      <label>Confirm new password <input type="password" name="new_password2" minlength="4" required></label>
       <button class="btn btn-ghost" type="submit">Update Password</button>
     </form>
   </section>
