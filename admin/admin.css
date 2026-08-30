@@ -105,6 +105,11 @@ code{ font-family: var(--font-mono); background: var(--panel-2); padding: 1px 5p
 .status-grid dd{ margin: 0; font-weight: 600; }
 
 .link-inline{ color: var(--gold); font-weight: 600; text-decoration: underline; }
+.link-button{ background: none; border: none; padding: 0; cursor: pointer; font: inherit; align-self: flex-start; }
+
+.js-page-images-field{ display: flex; flex-direction: column; gap: 8px; }
+.js-pdf-convert-status{ margin: 0; }
+.js-pdf-convert-status.is-error{ color: var(--danger); }
 
 /* ---------- forms ---------- */
 form{ display: flex; flex-direction: column; gap: 14px; margin-top: 12px; }

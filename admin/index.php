@@ -56,20 +56,24 @@ $csrf = ce_csrf_token();
 
   <section class="admin-card">
     <h2>Replace attachment</h2>
-    <p class="muted">Upload the new PDF, plus one JPG image per page (used for the "flip through" viewer on the site). Drag the thumbnails into the correct order before saving — the previous version is backed up automatically.</p>
+    <p class="muted">Upload the new PDF — page images for the "flip through" viewer are generated automatically in your browser, no need to upload JPGs one by one. The previous version is backed up automatically.</p>
 
     <form method="post" action="upload.php" enctype="multipart/form-data" class="js-page-upload-form" id="profileForm">
       <input type="hidden" name="csrf" value="<?= htmlspecialchars($csrf) ?>">
 
       <label class="file-field">
         <span>Company profile PDF</span>
-        <input type="file" name="pdf" accept="application/pdf" required>
+        <input type="file" class="js-pdf-input" name="pdf" accept="application/pdf" required>
       </label>
 
-      <label class="file-field">
-        <span>Page images (JPG, one per page)</span>
-        <input type="file" class="js-page-images-input" name="page_images[]" accept="image/jpeg" multiple required>
-      </label>
+      <div class="js-page-images-field">
+        <label class="file-field js-manual-images-label">
+          <span>Page images (JPG, one per page)</span>
+          <input type="file" class="js-page-images-input" name="page_images[]" accept="image/jpeg" multiple required>
+        </label>
+        <p class="fine-print js-pdf-convert-status" hidden></p>
+        <button type="button" class="link-inline link-button js-manual-toggle" hidden>Upload page images manually instead</button>
+      </div>
 
       <div class="js-page-order-hint fine-print" hidden>Drag thumbnails to reorder — this is the order pages will appear in.</div>
       <div class="js-page-thumbs page-thumbs"></div>
@@ -80,7 +84,7 @@ $csrf = ce_csrf_token();
 
   <section class="admin-card">
     <h2>Add a new document</h2>
-    <p class="muted">This adds a brand-new document alongside the existing one(s) below — nothing already published gets replaced or removed. Give it a title, a PDF, and one JPG image per page for its own flip-through viewer.</p>
+    <p class="muted">This adds a brand-new document alongside the existing one(s) below — nothing already published gets replaced or removed. Give it a title and a PDF; page images for its own flip-through viewer are generated automatically in your browser.</p>
 
     <form method="post" action="add-attachment.php" enctype="multipart/form-data" class="js-page-upload-form" id="addAttachmentForm">
       <input type="hidden" name="csrf" value="<?= htmlspecialchars($csrf) ?>">
@@ -92,13 +96,17 @@ $csrf = ce_csrf_token();
 
       <label class="file-field">
         <span>Document PDF</span>
-        <input type="file" name="pdf" accept="application/pdf" required>
+        <input type="file" class="js-pdf-input" name="pdf" accept="application/pdf" required>
       </label>
 
-      <label class="file-field">
-        <span>Page images (JPG, one per page)</span>
-        <input type="file" class="js-page-images-input" name="page_images[]" accept="image/jpeg" multiple required>
-      </label>
+      <div class="js-page-images-field">
+        <label class="file-field js-manual-images-label">
+          <span>Page images (JPG, one per page)</span>
+          <input type="file" class="js-page-images-input" name="page_images[]" accept="image/jpeg" multiple required>
+        </label>
+        <p class="fine-print js-pdf-convert-status" hidden></p>
+        <button type="button" class="link-inline link-button js-manual-toggle" hidden>Upload page images manually instead</button>
+      </div>
 
       <div class="js-page-order-hint fine-print" hidden>Drag thumbnails to reorder — this is the order pages will appear in.</div>
       <div class="js-page-thumbs page-thumbs"></div>
@@ -161,6 +169,7 @@ $csrf = ce_csrf_token();
 
 </main>
 
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
 <script src="admin.js"></script>
 </body>
 </html>
