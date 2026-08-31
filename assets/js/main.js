@@ -200,6 +200,12 @@
       projects: [
         { name: "Project 01", photos: [33,34,35] }
       ]
+    },
+    {
+      name: "Bandaragama",
+      projects: [
+        { name: "Project 01", photos: [52,53,54] }
+      ]
     }
   ];
 
