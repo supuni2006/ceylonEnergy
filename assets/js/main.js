@@ -179,16 +179,21 @@
         { name: "Project 03", photos: [46,47,48] },
         { name: "Wellampitiya", photos: [43,44,45] },
         { name: "Moratuwa", photos: [49,50,51] },
-        { name: "Microchip Solution - Moratuwa", photos: [55,56,57,58,59] }
-        
+        { name: "Microchip Solution - Moratuwa", photos: [55,56,57,58,59] },
+        { name: "Moratuwa", photos: [49,50,51] }
         
       ]
     },
     {
-      name: "Kandy",
+      name: "mt.lavinia",
       projects: [
-        { name: "Project 01", photos: [18,19,20,21,22] },
-        { name: "Project 02", photos: [23,24,25,26,27,28,29] }
+        { name: "G S Indika Perera's site", photos: [60,61,62] },
+      ]
+    },
+    {
+      name: "Gampaha",
+      projects: [
+        { name: "Wattala (I C M Perera 's site) ", photos: [63,64,65,66] }
       ]
     },
     {
