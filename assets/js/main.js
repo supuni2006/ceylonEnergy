@@ -165,9 +165,9 @@
       name: "Rathnapura",
       projects: [
         { name: "Belihuloya project 01", photos: [1,3,4,5] },
-        { name: "Belihuloya project 02", photos: [6,7,8,9] },
-        { name: "Sabaragamuwa University", photos: [36,37,38,39] },
-        { name: "Udawalawa project", photos: [40,41,42] }
+        { name: "Belihuloya project 02", photos: [8,7,6,9] },
+        { name: "Sabaragamuwa University", photos: [39,37,38,36] },
+        { name: "Udawalawa project", photos: [42,41,40] }
 
       ]
     },
@@ -180,7 +180,7 @@
         { name: "Wellampitiya", photos: [43,44,45] },
         { name: "Moratuwa", photos: [49,50,51] },
         { name: "Microchip Solution - Moratuwa", photos: [55,56,57,58,59] },
-        { name: "Moratuwa", photos: [49,50,51] }
+        
         
       ]
     },
@@ -193,13 +193,13 @@
     {
       name: "Gampaha",
       projects: [
-        { name: "Wattala (I C M Perera 's site) ", photos: [63,64,65,66] }
+        { name: "Wattala (I C M Perera 's site) ", photos: [63,64,65,68] }
       ]
     },
     {
       name: "piliyandala",
       projects: [
-        { name: "B C D Mendis 's site", photos: [67,68,69,70] }
+        { name: "B C D Mendis 's site", photos: [67,69,70] }
       ]
     },
     {
