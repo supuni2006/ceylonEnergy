@@ -197,6 +197,12 @@
       ]
     },
     {
+      name: "piliyandala",
+      projects: [
+        { name: "B C D Mendis 's site", photos: [67,68,69,70] }
+      ]
+    },
+    {
       name: "Dehiwala",
       projects: [
         { name: "Project 01", photos: [30,31,32] }
