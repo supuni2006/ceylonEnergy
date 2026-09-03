@@ -164,7 +164,7 @@
     {
       name: "Rathnapura",
       projects: [
-        { name: "Belihuloya project 01", photos: [1,2,3,4,5] },
+        { name: "Belihuloya project 01", photos: [1,3,4,5] },
         { name: "Belihuloya project 02", photos: [6,7,8,9] },
         { name: "Sabaragamuwa University", photos: [36,37,38,39] },
         { name: "Udawalawa project", photos: [40,41,42] }
@@ -205,13 +205,13 @@
     {
       name: "Dehiwala",
       projects: [
-        { name: "Project 01", photos: [30,31,32] }
+        { name: "Project 01", photos: [30,31] }
       ]
     },
     {
       name: "Kaluthara",
       projects: [
-        { name: "Project 01", photos: [33,34,35] }
+        { name: "Project 01", photos: [33,34] }
       ]
     },
     {
