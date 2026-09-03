@@ -185,12 +185,6 @@
       ]
     },
     {
-      name: "mt.lavinia",
-      projects: [
-        { name: "G S Indika Perera's site", photos: [60,61,62] },
-      ]
-    },
-    {
       name: "Gampaha",
       projects: [
         { name: "Wattala (I C M Perera 's site) ", photos: [63,64,65,68] }
@@ -205,7 +199,8 @@
     {
       name: "Dehiwala",
       projects: [
-        { name: "Project 01", photos: [30,31] }
+        { name: "Project 01", photos: [30,31] },
+        { name: "G S Indika Perera's site", photos: [60,61,62] }
       ]
     },
     {
