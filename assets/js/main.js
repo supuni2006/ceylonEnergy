@@ -179,7 +179,7 @@
         { name: "Project 03", photos: [46,47,48] },
         { name: "Wellampitiya", photos: [43,44,45] },
         { name: "Moratuwa", photos: [49,50,51] },
-        { name: "Microchip Solution - Moratuwa", photos: [55,56,57,58,59] },
+        { name: "Microchip Solution - Moratuwa", photos: [58,56,57,55,59] },
         
         
       ]
