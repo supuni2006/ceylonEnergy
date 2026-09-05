@@ -220,6 +220,38 @@ input:focus-visible{ outline: 2px solid var(--gold); outline-offset: 1px; }
 }
 .page-thumb-remove:hover{ background: var(--danger); }
 
+/* ---------- gallery project photo thumbnails ---------- */
+.gallery-photo-grid{
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+  gap: 10px;
+  margin-top: 10px;
+}
+.gallery-photo-thumb{
+  position: relative;
+  border: 1px solid var(--line-2);
+  border-radius: 4px;
+  overflow: hidden;
+  aspect-ratio: 4/3;
+  background: var(--panel-2);
+}
+.gallery-photo-thumb img{ width: 100%; height: 100%; object-fit: cover; display: block; }
+.gallery-photo-remove{
+  position: absolute;
+  top: 4px;
+  right: 4px;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  border: none;
+  background: rgba(11,53,86,0.85);
+  color: #fff;
+  font-size: 11px;
+  line-height: 1;
+  cursor: pointer;
+}
+.gallery-photo-remove:hover{ background: var(--danger); }
+
 .backup-list{
   list-style: none;
   margin: 8px 0 0;

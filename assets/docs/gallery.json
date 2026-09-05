@@ -58,8 +58,7 @@
                     "assets/images/completed-projects/project-41.jpg",
                     "assets/images/completed-projects/project-40.jpg",
                     "assets/images/completed-projects/loc-rathnapura/proj-udawalawa-project/photo-004.png",
-                    "assets/images/completed-projects/loc-rathnapura/proj-udawalawa-project/photo-005.png",
-                    "assets/images/completed-projects/loc-rathnapura/proj-udawalawa-project/photo-006.png"
+                    "assets/images/completed-projects/loc-rathnapura/proj-udawalawa-project/photo-005.png"
                 ]
             }
         ]
@@ -74,13 +73,9 @@
                 "name": "Project 01",
                 "createdAt": "2026-09-05T08:36:09.357658+00:00",
                 "photos": [
-                    "assets/images/completed-projects/project-10.jpg",
                     "assets/images/completed-projects/project-11.jpg",
                     "assets/images/completed-projects/project-12.jpg",
                     "assets/images/completed-projects/project-13.jpg",
-                    "assets/images/completed-projects/loc-colombo/proj-project-01/photo-005.png",
-                    "assets/images/completed-projects/loc-colombo/proj-project-01/photo-006.png",
-                    "assets/images/completed-projects/loc-colombo/proj-project-01/photo-007.png",
                     "assets/images/completed-projects/loc-colombo/proj-project-01/photo-008.png"
                 ]
             },
@@ -252,11 +247,7 @@
                 "id": "proj-project-01",
                 "name": "Project 01",
                 "createdAt": "2026-09-05T08:36:09.357658+00:00",
-                "photos": [
-                    "assets/images/completed-projects/loc-bandaragama/proj-project-01/photo-001.png",
-                    "assets/images/completed-projects/loc-bandaragama/proj-project-01/photo-002.png",
-                    "assets/images/completed-projects/loc-bandaragama/proj-project-01/photo-003.png"
-                ]
+                "photos": []
             }
         ]
     }
