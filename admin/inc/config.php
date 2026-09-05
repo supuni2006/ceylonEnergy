@@ -32,6 +32,13 @@ define('ATTACHMENTS_IMAGES_DIR', SITE_ROOT . '/assets/images/attachments'); // p
 
 define('BACKUP_DELETED_DIR', SITE_ROOT . '/storage/backups/deleted-attachments');
 
+// ---- project gallery (locations -> projects -> photos) -----------------
+// Powers the "Our Projects" section on the live site (assets/js/main.js
+// fetches GALLERY_JSON). Separate from the PDF attachment system above.
+define('GALLERY_JSON',        DOCS_DIR . '/gallery.json');                          // public list read by assets/js/main.js
+define('GALLERY_IMAGES_DIR',  SITE_ROOT . '/assets/images/completed-projects');     // one subfolder per location id, then per project id
+define('BACKUP_DELETED_GALLERY_DIR', SITE_ROOT . '/storage/backups/deleted-gallery');
+
 // ---- company profile (single PDF + page images) -------------------------
 // This is the system the live site actually reads (assets/js/main.js uses
 // PROFILE_META_JSON + numbered JPGs in PROFILE_IMAGES_DIR). It is separate
@@ -46,6 +53,8 @@ define('PROFILE_MAX_BACKUPS_KEPT', 5);
 define('MAX_PDF_BYTES',        35 * 1024 * 1024); // 35 MB — leaves headroom under the 40M/45M server limits for page images in the same request
 define('MAX_IMAGE_BYTES',      10 * 1024 * 1024); // 10 MB per page image
 define('MAX_ATTACHMENT_PAGES', 200);               // sanity cap on pages per attachment
+define('MAX_GALLERY_PHOTO_BYTES',       10 * 1024 * 1024); // 10 MB per gallery photo
+define('MAX_GALLERY_PHOTOS_PER_UPLOAD', 60);                // sanity cap per upload batch
 define('MAX_LOGIN_ATTEMPTS',    6);
 define('LOGIN_LOCKOUT_SECONDS', 300);
 

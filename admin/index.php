@@ -2,6 +2,7 @@
 require_once __DIR__ . '/inc/auth.php';
 require_once __DIR__ . '/inc/profile.php';
 require_once __DIR__ . '/inc/attachments.php';
+require_once __DIR__ . '/inc/gallery.php';
 
 ce_require_login();
 
@@ -9,6 +10,7 @@ $pdfInfo = ce_profile_pdf_info();
 $pageCount = ce_current_page_count();
 $backups = ce_list_backups();
 $attachments = ce_list_attachments();
+$galleryLocations = ce_list_gallery();
 $flash = ce_flash_take();
 $csrf = ce_csrf_token();
 ?>
@@ -144,6 +146,113 @@ $csrf = ce_csrf_token();
   </section>
   <?php endif; ?>
 
+  <section class="admin-card" id="gallery-admin">
+    <h2>Project Gallery — Locations, Projects &amp; Photos</h2>
+    <p class="muted">Powers the "Our Projects" section on the live site: pick a location, then a project, to see its photos. Add a location, then a project under it, then upload photos to that project — nothing already published is touched.</p>
+
+    <div class="gallery-forms-grid">
+      <form method="post" action="add-location.php">
+        <input type="hidden" name="csrf" value="<?= htmlspecialchars($csrf) ?>">
+        <label>
+          <span>New location name</span>
+          <input type="text" name="name" maxlength="80" placeholder="e.g. Kandy" required>
+        </label>
+        <button class="btn js-submit-btn" type="submit">Add Location</button>
+      </form>
+
+      <form method="post" action="add-project.php">
+        <input type="hidden" name="csrf" value="<?= htmlspecialchars($csrf) ?>">
+        <label>
+          <span>Location</span>
+          <select name="location_id" required>
+            <option value="" disabled selected>Choose a location&hellip;</option>
+            <?php foreach ($galleryLocations as $loc): ?>
+              <option value="<?= htmlspecialchars($loc['id']) ?>"><?= htmlspecialchars($loc['name']) ?></option>
+            <?php endforeach; ?>
+          </select>
+        </label>
+        <label>
+          <span>New project name</span>
+          <input type="text" name="name" maxlength="120" placeholder="e.g. Project 03" required>
+        </label>
+        <button class="btn js-submit-btn" type="submit">Add Project</button>
+      </form>
+
+      <form method="post" action="add-project-photos.php" enctype="multipart/form-data">
+        <input type="hidden" name="csrf" value="<?= htmlspecialchars($csrf) ?>">
+        <label>
+          <span>Location</span>
+          <select name="location_id" class="js-photo-location-select" required>
+            <option value="" disabled selected>Choose a location&hellip;</option>
+            <?php foreach ($galleryLocations as $loc): ?>
+              <option value="<?= htmlspecialchars($loc['id']) ?>"><?= htmlspecialchars($loc['name']) ?></option>
+            <?php endforeach; ?>
+          </select>
+        </label>
+        <label>
+          <span>Project</span>
+          <select name="project_id" class="js-photo-project-select" required>
+            <option value="" disabled selected>Choose a location first&hellip;</option>
+          </select>
+        </label>
+        <label class="file-field">
+          <span>Photos (JPG or PNG, multiple allowed)</span>
+          <input type="file" name="photos[]" accept="image/jpeg,image/png" multiple required>
+        </label>
+        <button class="btn js-submit-btn" type="submit">Upload Photos</button>
+      </form>
+    </div>
+
+    <?php if ($galleryLocations): ?>
+    <div class="gallery-tree">
+      <?php foreach ($galleryLocations as $loc): $locProjects = $loc['projects'] ?? []; ?>
+        <div class="gallery-location">
+          <div class="gallery-location-head">
+            <strong><?= htmlspecialchars($loc['name']) ?></strong>
+            <span class="fine-print"><?= count($locProjects) ?> project<?= count($locProjects) === 1 ? '' : 's' ?></span>
+            <form method="post" action="delete-location.php" onsubmit="return confirm('Remove this entire location, all its projects, and all their photos? Files are moved to a backup folder, not permanently deleted.');">
+              <input type="hidden" name="csrf" value="<?= htmlspecialchars($csrf) ?>">
+              <input type="hidden" name="location_id" value="<?= htmlspecialchars($loc['id']) ?>">
+              <button type="submit" class="btn btn-ghost btn-danger">Remove Location</button>
+            </form>
+          </div>
+
+          <?php foreach ($locProjects as $proj): $photos = $proj['photos'] ?? []; ?>
+            <div class="gallery-project">
+              <div class="gallery-project-head">
+                <span><?= htmlspecialchars($proj['name']) ?> &middot; <?= count($photos) ?> photo<?= count($photos) === 1 ? '' : 's' ?></span>
+                <form method="post" action="delete-project.php" onsubmit="return confirm('Remove this project and all its photos? Files are moved to a backup folder, not permanently deleted.');">
+                  <input type="hidden" name="csrf" value="<?= htmlspecialchars($csrf) ?>">
+                  <input type="hidden" name="location_id" value="<?= htmlspecialchars($loc['id']) ?>">
+                  <input type="hidden" name="project_id" value="<?= htmlspecialchars($proj['id']) ?>">
+                  <button type="submit" class="btn btn-ghost btn-danger">Remove Project</button>
+                </form>
+              </div>
+
+              <?php if ($photos): ?>
+                <div class="gallery-photo-grid">
+                  <?php foreach ($photos as $i => $photoUrl): ?>
+                    <div class="gallery-photo-thumb">
+                      <img src="../<?= htmlspecialchars($photoUrl) ?>" alt="" loading="lazy">
+                      <form method="post" action="delete-photo.php" onsubmit="return confirm('Remove this photo?');">
+                        <input type="hidden" name="csrf" value="<?= htmlspecialchars($csrf) ?>">
+                        <input type="hidden" name="location_id" value="<?= htmlspecialchars($loc['id']) ?>">
+                        <input type="hidden" name="project_id" value="<?= htmlspecialchars($proj['id']) ?>">
+                        <input type="hidden" name="photo_index" value="<?= (int)$i ?>">
+                        <button type="submit" class="gallery-photo-remove" aria-label="Remove photo">&times;</button>
+                      </form>
+                    </div>
+                  <?php endforeach; ?>
+                </div>
+              <?php endif; ?>
+            </div>
+          <?php endforeach; ?>
+        </div>
+      <?php endforeach; ?>
+    </div>
+    <?php endif; ?>
+  </section>
+
   <?php if ($backups): ?>
   <section class="admin-card">
     <h2>Recent backups</h2>
@@ -169,6 +278,17 @@ $csrf = ce_csrf_token();
 
 </main>
 
+<script>
+  window.CE_GALLERY_DATA = <?= json_encode(array_map(function ($loc) {
+    return [
+      'id' => $loc['id'] ?? '',
+      'name' => $loc['name'] ?? '',
+      'projects' => array_map(function ($p) {
+        return ['id' => $p['id'] ?? '', 'name' => $p['name'] ?? ''];
+      }, $loc['projects'] ?? []),
+    ];
+  }, $galleryLocations), JSON_UNESCAPED_SLASHES | JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_AMP) ?>;
+</script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
 <script src="admin.js"></script>
 </body>
