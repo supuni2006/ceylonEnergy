@@ -146,9 +146,17 @@ function ce_validate_gallery_photo_files($filesEntry) {
 
         $mime = finfo_file($finfo, $tmp);
         $ext  = strtolower(pathinfo($name, PATHINFO_EXTENSION));
-        if (!isset($okMimes[$mime]) || !in_array($ext, $okMimes[$mime], true)) {
+        if (!isset($okMimes[$mime])) {
             finfo_close($finfo);
             return '"' . $name . '" must be a JPG or PNG image.';
+        }
+        if (!in_array($ext, $okMimes[$mime], true)) {
+            // The actual image data is a valid JPG/PNG, but the filename's
+            // extension doesn't match it (e.g. a PNG exported by a design
+            // tool that got named "photo.jpg"). Fix the extension instead
+            // of rejecting a genuinely valid image.
+            $correctExt = $okMimes[$mime][0];
+            $name = pathinfo($name, PATHINFO_FILENAME) . '.' . $correctExt;
         }
 
         $valid[] = ['tmp' => $tmp, 'name' => $name];

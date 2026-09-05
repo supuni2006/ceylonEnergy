@@ -205,7 +205,11 @@
                 "id": "proj-project-01",
                 "name": "Project 01",
                 "createdAt": "2026-09-05T08:36:09.357658+00:00",
-                "photos": []
+                "photos": [
+                    "assets/images/completed-projects/loc-bandaragama/proj-project-01/photo-001.png",
+                    "assets/images/completed-projects/loc-bandaragama/proj-project-01/photo-002.png",
+                    "assets/images/completed-projects/loc-bandaragama/proj-project-01/photo-003.png"
+                ]
             }
         ]
     }
