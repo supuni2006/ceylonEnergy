@@ -1,216 +1,212 @@
 [
-  {
-    "id": "loc-rathnapura",
-    "name": "Rathnapura",
-    "createdAt": "2026-09-05T08:36:09.357658+00:00",
-    "projects": [
-      {
-        "id": "proj-belihuloya-project-01",
-        "name": "Belihuloya project 01",
+    {
+        "id": "loc-rathnapura",
+        "name": "Rathnapura",
         "createdAt": "2026-09-05T08:36:09.357658+00:00",
-        "photos": [
-          "assets/images/completed-projects/project-1.jpg",
-          "assets/images/completed-projects/project-3.jpg",
-          "assets/images/completed-projects/project-4.jpg",
-          "assets/images/completed-projects/project-5.jpg"
+        "projects": [
+            {
+                "id": "proj-belihuloya-project-01",
+                "name": "Belihuloya project 01",
+                "createdAt": "2026-09-05T08:36:09.357658+00:00",
+                "photos": [
+                    "assets/images/completed-projects/project-1.jpg",
+                    "assets/images/completed-projects/project-3.jpg",
+                    "assets/images/completed-projects/project-4.jpg",
+                    "assets/images/completed-projects/project-5.jpg"
+                ]
+            },
+            {
+                "id": "proj-belihuloya-project-02",
+                "name": "Belihuloya project 02",
+                "createdAt": "2026-09-05T08:36:09.357658+00:00",
+                "photos": [
+                    "assets/images/completed-projects/project-8.jpg",
+                    "assets/images/completed-projects/project-7.jpg",
+                    "assets/images/completed-projects/project-6.jpg",
+                    "assets/images/completed-projects/project-9.jpg"
+                ]
+            },
+            {
+                "id": "proj-sabaragamuwa-university",
+                "name": "Sabaragamuwa University",
+                "createdAt": "2026-09-05T08:36:09.357658+00:00",
+                "photos": [
+                    "assets/images/completed-projects/project-39.jpg",
+                    "assets/images/completed-projects/project-37.jpg",
+                    "assets/images/completed-projects/project-38.jpg",
+                    "assets/images/completed-projects/project-36.jpg"
+                ]
+            },
+            {
+                "id": "proj-udawalawa-project",
+                "name": "Udawalawa project",
+                "createdAt": "2026-09-05T08:36:09.357658+00:00",
+                "photos": [
+                    "assets/images/completed-projects/project-42.jpg",
+                    "assets/images/completed-projects/project-41.jpg",
+                    "assets/images/completed-projects/project-40.jpg"
+                ]
+            }
         ]
-      },
-      {
-        "id": "proj-belihuloya-project-02",
-        "name": "Belihuloya project 02",
+    },
+    {
+        "id": "loc-colombo",
+        "name": "Colombo",
         "createdAt": "2026-09-05T08:36:09.357658+00:00",
-        "photos": [
-          "assets/images/completed-projects/project-8.jpg",
-          "assets/images/completed-projects/project-7.jpg",
-          "assets/images/completed-projects/project-6.jpg",
-          "assets/images/completed-projects/project-9.jpg"
+        "projects": [
+            {
+                "id": "proj-project-01",
+                "name": "Project 01",
+                "createdAt": "2026-09-05T08:36:09.357658+00:00",
+                "photos": [
+                    "assets/images/completed-projects/project-10.jpg",
+                    "assets/images/completed-projects/project-11.jpg",
+                    "assets/images/completed-projects/project-12.jpg",
+                    "assets/images/completed-projects/project-13.jpg"
+                ]
+            },
+            {
+                "id": "proj-project-02",
+                "name": "Project 02",
+                "createdAt": "2026-09-05T08:36:09.357658+00:00",
+                "photos": [
+                    "assets/images/completed-projects/project-14.jpg",
+                    "assets/images/completed-projects/project-16.jpg",
+                    "assets/images/completed-projects/project-17.jpg"
+                ]
+            },
+            {
+                "id": "proj-project-03",
+                "name": "Project 03",
+                "createdAt": "2026-09-05T08:36:09.357658+00:00",
+                "photos": [
+                    "assets/images/completed-projects/project-46.jpg",
+                    "assets/images/completed-projects/project-47.jpg",
+                    "assets/images/completed-projects/project-48.jpg"
+                ]
+            },
+            {
+                "id": "proj-wellampitiya",
+                "name": "Wellampitiya",
+                "createdAt": "2026-09-05T08:36:09.357658+00:00",
+                "photos": [
+                    "assets/images/completed-projects/project-43.jpg",
+                    "assets/images/completed-projects/project-44.jpg",
+                    "assets/images/completed-projects/project-45.jpg"
+                ]
+            },
+            {
+                "id": "proj-moratuwa",
+                "name": "Moratuwa",
+                "createdAt": "2026-09-05T08:36:09.357658+00:00",
+                "photos": [
+                    "assets/images/completed-projects/project-49.jpg",
+                    "assets/images/completed-projects/project-50.jpg",
+                    "assets/images/completed-projects/project-51.jpg"
+                ]
+            },
+            {
+                "id": "proj-microchip-solution-moratuwa",
+                "name": "Microchip Solution - Moratuwa",
+                "createdAt": "2026-09-05T08:36:09.357658+00:00",
+                "photos": [
+                    "assets/images/completed-projects/project-58.jpg",
+                    "assets/images/completed-projects/project-56.jpg",
+                    "assets/images/completed-projects/project-57.jpg",
+                    "assets/images/completed-projects/project-55.jpg",
+                    "assets/images/completed-projects/project-59.jpg"
+                ]
+            }
         ]
-      },
-      {
-        "id": "proj-sabaragamuwa-university",
-        "name": "Sabaragamuwa University",
+    },
+    {
+        "id": "loc-gampaha",
+        "name": "Gampaha",
         "createdAt": "2026-09-05T08:36:09.357658+00:00",
-        "photos": [
-          "assets/images/completed-projects/project-39.jpg",
-          "assets/images/completed-projects/project-37.jpg",
-          "assets/images/completed-projects/project-38.jpg",
-          "assets/images/completed-projects/project-36.jpg"
+        "projects": [
+            {
+                "id": "proj-wattala-i-c-m-perera-s-site",
+                "name": "Wattala (I C M Perera 's site) ",
+                "createdAt": "2026-09-05T08:36:09.357658+00:00",
+                "photos": [
+                    "assets/images/completed-projects/project-63.jpg",
+                    "assets/images/completed-projects/project-64.jpg",
+                    "assets/images/completed-projects/project-65.jpg",
+                    "assets/images/completed-projects/project-68.jpg"
+                ]
+            }
         ]
-      },
-      {
-        "id": "proj-udawalawa-project",
-        "name": "Udawalawa project",
+    },
+    {
+        "id": "loc-piliyandala",
+        "name": "piliyandala",
         "createdAt": "2026-09-05T08:36:09.357658+00:00",
-        "photos": [
-          "assets/images/completed-projects/project-42.jpg",
-          "assets/images/completed-projects/project-41.jpg",
-          "assets/images/completed-projects/project-40.jpg"
+        "projects": [
+            {
+                "id": "proj-b-c-d-mendis-s-site",
+                "name": "B C D Mendis 's site",
+                "createdAt": "2026-09-05T08:36:09.357658+00:00",
+                "photos": [
+                    "assets/images/completed-projects/project-67.jpg",
+                    "assets/images/completed-projects/project-69.jpg",
+                    "assets/images/completed-projects/project-70.jpg"
+                ]
+            }
         ]
-      }
-    ]
-  },
-  {
-    "id": "loc-colombo",
-    "name": "Colombo",
-    "createdAt": "2026-09-05T08:36:09.357658+00:00",
-    "projects": [
-      {
-        "id": "proj-project-01",
-        "name": "Project 01",
+    },
+    {
+        "id": "loc-dehiwala",
+        "name": "Dehiwala",
         "createdAt": "2026-09-05T08:36:09.357658+00:00",
-        "photos": [
-          "assets/images/completed-projects/project-10.jpg",
-          "assets/images/completed-projects/project-11.jpg",
-          "assets/images/completed-projects/project-12.jpg",
-          "assets/images/completed-projects/project-13.jpg"
+        "projects": [
+            {
+                "id": "proj-project-01",
+                "name": "Project 01",
+                "createdAt": "2026-09-05T08:36:09.357658+00:00",
+                "photos": [
+                    "assets/images/completed-projects/project-30.jpg",
+                    "assets/images/completed-projects/project-31.jpg"
+                ]
+            },
+            {
+                "id": "proj-g-s-indika-perera-s-site",
+                "name": "G S Indika Perera's site",
+                "createdAt": "2026-09-05T08:36:09.357658+00:00",
+                "photos": [
+                    "assets/images/completed-projects/project-60.jpg",
+                    "assets/images/completed-projects/project-61.jpg",
+                    "assets/images/completed-projects/project-62.jpg"
+                ]
+            }
         ]
-      },
-      {
-        "id": "proj-project-02",
-        "name": "Project 02",
+    },
+    {
+        "id": "loc-kaluthara",
+        "name": "Kaluthara",
         "createdAt": "2026-09-05T08:36:09.357658+00:00",
-        "photos": [
-          "assets/images/completed-projects/project-14.jpg",
-          "assets/images/completed-projects/project-16.jpg",
-          "assets/images/completed-projects/project-17.jpg"
+        "projects": [
+            {
+                "id": "proj-project-01",
+                "name": "Project 01",
+                "createdAt": "2026-09-05T08:36:09.357658+00:00",
+                "photos": [
+                    "assets/images/completed-projects/project-33.jpg",
+                    "assets/images/completed-projects/project-34.jpg"
+                ]
+            }
         ]
-      },
-      {
-        "id": "proj-project-03",
-        "name": "Project 03",
+    },
+    {
+        "id": "loc-bandaragama",
+        "name": "Bandaragama",
         "createdAt": "2026-09-05T08:36:09.357658+00:00",
-        "photos": [
-          "assets/images/completed-projects/project-46.jpg",
-          "assets/images/completed-projects/project-47.jpg",
-          "assets/images/completed-projects/project-48.jpg"
+        "projects": [
+            {
+                "id": "proj-project-01",
+                "name": "Project 01",
+                "createdAt": "2026-09-05T08:36:09.357658+00:00",
+                "photos": []
+            }
         ]
-      },
-      {
-        "id": "proj-wellampitiya",
-        "name": "Wellampitiya",
-        "createdAt": "2026-09-05T08:36:09.357658+00:00",
-        "photos": [
-          "assets/images/completed-projects/project-43.jpg",
-          "assets/images/completed-projects/project-44.jpg",
-          "assets/images/completed-projects/project-45.jpg"
-        ]
-      },
-      {
-        "id": "proj-moratuwa",
-        "name": "Moratuwa",
-        "createdAt": "2026-09-05T08:36:09.357658+00:00",
-        "photos": [
-          "assets/images/completed-projects/project-49.jpg",
-          "assets/images/completed-projects/project-50.jpg",
-          "assets/images/completed-projects/project-51.jpg"
-        ]
-      },
-      {
-        "id": "proj-microchip-solution-moratuwa",
-        "name": "Microchip Solution - Moratuwa",
-        "createdAt": "2026-09-05T08:36:09.357658+00:00",
-        "photos": [
-          "assets/images/completed-projects/project-58.jpg",
-          "assets/images/completed-projects/project-56.jpg",
-          "assets/images/completed-projects/project-57.jpg",
-          "assets/images/completed-projects/project-55.jpg",
-          "assets/images/completed-projects/project-59.jpg"
-        ]
-      }
-    ]
-  },
-  {
-    "id": "loc-gampaha",
-    "name": "Gampaha",
-    "createdAt": "2026-09-05T08:36:09.357658+00:00",
-    "projects": [
-      {
-        "id": "proj-wattala-i-c-m-perera-s-site",
-        "name": "Wattala (I C M Perera 's site) ",
-        "createdAt": "2026-09-05T08:36:09.357658+00:00",
-        "photos": [
-          "assets/images/completed-projects/project-63.jpg",
-          "assets/images/completed-projects/project-64.jpg",
-          "assets/images/completed-projects/project-65.jpg",
-          "assets/images/completed-projects/project-68.jpg"
-        ]
-      }
-    ]
-  },
-  {
-    "id": "loc-piliyandala",
-    "name": "piliyandala",
-    "createdAt": "2026-09-05T08:36:09.357658+00:00",
-    "projects": [
-      {
-        "id": "proj-b-c-d-mendis-s-site",
-        "name": "B C D Mendis 's site",
-        "createdAt": "2026-09-05T08:36:09.357658+00:00",
-        "photos": [
-          "assets/images/completed-projects/project-67.jpg",
-          "assets/images/completed-projects/project-69.jpg",
-          "assets/images/completed-projects/project-70.jpg"
-        ]
-      }
-    ]
-  },
-  {
-    "id": "loc-dehiwala",
-    "name": "Dehiwala",
-    "createdAt": "2026-09-05T08:36:09.357658+00:00",
-    "projects": [
-      {
-        "id": "proj-project-01",
-        "name": "Project 01",
-        "createdAt": "2026-09-05T08:36:09.357658+00:00",
-        "photos": [
-          "assets/images/completed-projects/project-30.jpg",
-          "assets/images/completed-projects/project-31.jpg"
-        ]
-      },
-      {
-        "id": "proj-g-s-indika-perera-s-site",
-        "name": "G S Indika Perera's site",
-        "createdAt": "2026-09-05T08:36:09.357658+00:00",
-        "photos": [
-          "assets/images/completed-projects/project-60.jpg",
-          "assets/images/completed-projects/project-61.jpg",
-          "assets/images/completed-projects/project-62.jpg"
-        ]
-      }
-    ]
-  },
-  {
-    "id": "loc-kaluthara",
-    "name": "Kaluthara",
-    "createdAt": "2026-09-05T08:36:09.357658+00:00",
-    "projects": [
-      {
-        "id": "proj-project-01",
-        "name": "Project 01",
-        "createdAt": "2026-09-05T08:36:09.357658+00:00",
-        "photos": [
-          "assets/images/completed-projects/project-33.jpg",
-          "assets/images/completed-projects/project-34.jpg"
-        ]
-      }
-    ]
-  },
-  {
-    "id": "loc-bandaragama",
-    "name": "Bandaragama",
-    "createdAt": "2026-09-05T08:36:09.357658+00:00",
-    "projects": [
-      {
-        "id": "proj-project-01",
-        "name": "Project 01",
-        "createdAt": "2026-09-05T08:36:09.357658+00:00",
-        "photos": [
-          "assets/images/completed-projects/project-52.jpg",
-          "assets/images/completed-projects/project-53.jpg",
-          "assets/images/completed-projects/project-54.jpg"
-        ]
-      }
-    ]
-  }
+    }
 ]
