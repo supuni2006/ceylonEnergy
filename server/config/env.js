@@ -62,6 +62,24 @@ function assertRequiredEnv() {
     console.error('\n  Copy .env.example to .env and fill in the values.\n');
     process.exit(1);
   }
+
+  // The placeholder from .env.example is committed to the repository, so
+  // leaving it in place means the admin token is public knowledge — a
+  // stranger could delete the whole gallery. Refuse to start rather than
+  // run in that state.
+  if (env.adminApiToken === 'replace_with_a_long_random_string') {
+    console.error('\n  ADMIN_API_TOKEN is still the example placeholder.\n');
+    console.error('   That value is published in .env.example, so anyone who can');
+    console.error('   read this repository could change or delete your gallery.\n');
+    console.error('   Generate a real one and put it in .env:\n');
+    console.error('     node -e "console.log(require(\'crypto\').randomBytes(32).toString(\'hex\'))"\n');
+    process.exit(1);
+  }
+
+  // Not fatal — a short token is weak but still the owner's choice.
+  if (env.adminApiToken.length < 24) {
+    console.warn('\n  Warning: ADMIN_API_TOKEN is short. 32+ random characters is safer.\n');
+  }
 }
 
 module.exports = { env, assertRequiredEnv };

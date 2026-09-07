@@ -284,6 +284,7 @@ local files.
 | What you see | What it usually means |
 |---|---|
 | `Missing required environment variables` | `.env` does not exist or a line is blank — copy it from `.env.example` |
+| `ADMIN_API_TOKEN is still the example placeholder` | Generate a real token (see step 2) — the placeholder is public, so the server refuses to start with it |
 | MongoDB fails, mentions IP / allowlist | Add your server's IP under Atlas → Network Access |
 | MongoDB fails, authentication error | Wrong password, or a special character that needs percent-encoding |
 | Cloudinary fails on `npm run check-db` | Cloud name, API key or secret is wrong |

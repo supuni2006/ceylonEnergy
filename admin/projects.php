@@ -24,8 +24,17 @@ ce_admin_header('projects', 'Project Gallery');
     // it, which would otherwise make this page look perfectly fine
     // right up until the first upload fails.
     $apiHealth = ce_api_health();
-    if ($apiHealth === null):
+    if (ce_env('ADMIN_API_TOKEN') === 'replace_with_a_long_random_string'):
   ?>
+    <div class="notice notice-error">
+      <strong>Your admin token is still the example placeholder.</strong>
+      That value is published in <code>.env.example</code> in this repository,
+      so anyone who can read it could change or delete the gallery. Generate a
+      real one and put it in <code>.env</code> as <code>ADMIN_API_TOKEN</code>:
+      <br><code>node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"</code>
+      <br>Then restart the backend.
+    </div>
+  <?php elseif ($apiHealth === null): ?>
     <div class="notice notice-error">
       <strong>The gallery backend is not responding.</strong>
       You can still browse below, but adding or removing photos will not work
