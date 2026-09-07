@@ -4,13 +4,13 @@ require_once __DIR__ . '/inc/auth.php';
 ce_require_login();
 
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
-    header('Location: index.php');
+    header('Location: attachments.php');
     exit;
 }
 
 if (!ce_csrf_check($_POST['csrf'] ?? '')) {
     ce_flash_set('Your session expired — please try again.', 'error');
-    header('Location: index.php');
+    header('Location: attachments.php');
     exit;
 }
 
@@ -31,5 +31,5 @@ if (!$hash || !password_verify($current, $hash)) {
     ce_flash_set('Password updated.');
 }
 
-header('Location: index.php');
+header('Location: attachments.php');
 exit;

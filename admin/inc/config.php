@@ -42,9 +42,20 @@ define('PROFILE_IMAGES_DIR',  SITE_ROOT . '/assets/images/company-profile');
 define('PROFILE_BACKUPS_DIR', ADMIN_ROOT . '/storage/backups');
 define('PROFILE_MAX_BACKUPS_KEPT', 5);
 
+// ---- project gallery (locations -> projects -> photos) -----------------
+// Read by assets/js/main.js on the live site ("Our Projects" section).
+define('PROJECTS_JSON',       SITE_ROOT . '/assets/data/projects.json');
+define('PROJECTS_IMAGES_DIR', SITE_ROOT . '/assets/images/completed-projects');
+
+// ---- awards --------------------------------------------------------------
+// Read by assets/js/main.js on the live site ("Awards" section).
+define('AWARDS_JSON',         SITE_ROOT . '/assets/data/awards.json');
+define('AWARDS_IMAGES_DIR',   SITE_ROOT . '/assets/images/awards');
+
 // ---- limits ------------------------------------------------------------
 define('MAX_PDF_BYTES',        35 * 1024 * 1024); // 35 MB — leaves headroom under the 40M/45M server limits for page images in the same request
 define('MAX_IMAGE_BYTES',      10 * 1024 * 1024); // 10 MB per page image
+define('MAX_AWARD_IMAGE_BYTES', 10 * 1024 * 1024); // 10 MB per award image
 define('MAX_ATTACHMENT_PAGES', 200);               // sanity cap on pages per attachment
 define('MAX_LOGIN_ATTEMPTS',    6);
 define('LOGIN_LOCKOUT_SECONDS', 300);

@@ -258,4 +258,42 @@
       }
     });
   });
+
+  // ---- gallery: "upload photos" form — project dropdown follows location ----
+  (function () {
+    var locationSelect = document.querySelector(".js-photo-location-select");
+    var projectSelect  = document.querySelector(".js-photo-project-select");
+    if (!locationSelect || !projectSelect) return;
+
+    var GALLERY_DATA = window.CE_GALLERY_DATA || [];
+
+    function populateProjects() {
+      var loc = GALLERY_DATA.filter(function (l) { return l.id === locationSelect.value; })[0];
+      projectSelect.innerHTML = "";
+
+      var placeholder = document.createElement("option");
+      placeholder.value = "";
+      placeholder.disabled = true;
+      placeholder.selected = true;
+
+      if (!loc || !loc.projects || !loc.projects.length) {
+        placeholder.textContent = loc ? "No projects yet \u2014 add one above first" : "Choose a location first\u2026";
+        projectSelect.appendChild(placeholder);
+        return;
+      }
+
+      placeholder.textContent = "Choose a project\u2026";
+      projectSelect.appendChild(placeholder);
+
+      loc.projects.forEach(function (p) {
+        var opt = document.createElement("option");
+        opt.value = p.id;
+        opt.textContent = p.name;
+        projectSelect.appendChild(opt);
+      });
+    }
+
+    locationSelect.addEventListener("change", populateProjects);
+    populateProjects();
+  })();
 })();

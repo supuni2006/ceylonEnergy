@@ -6,25 +6,25 @@ require_once __DIR__ . '/inc/attachments.php'; // shared validators: ce_validate
 ce_require_login();
 
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
-    header('Location: index.php#admin-flash');
+    header('Location: attachments.php#admin-flash');
     exit;
 }
 
 if (ce_post_too_large()) {
     ce_flash_set(ce_post_too_large_message(), 'error');
-    header('Location: index.php#admin-flash');
+    header('Location: attachments.php#admin-flash');
     exit;
 }
 
 if (!ce_csrf_check($_POST['csrf'] ?? '')) {
     ce_flash_set('Your session expired — please try again.', 'error');
-    header('Location: index.php#admin-flash');
+    header('Location: attachments.php#admin-flash');
     exit;
 }
 
 function fail($msg) {
     ce_flash_set($msg, 'error');
-    header('Location: index.php#admin-flash');
+    header('Location: attachments.php#admin-flash');
     exit;
 }
 
@@ -48,5 +48,5 @@ if (!$ok) {
 }
 
 ce_flash_set('Company profile updated — it now shows on the live website.');
-header('Location: index.php#admin-flash');
+header('Location: attachments.php#admin-flash');
 exit;

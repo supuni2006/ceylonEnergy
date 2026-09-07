@@ -43,6 +43,16 @@
     });
   });
 
+  // Stop the browser silently restoring the last scroll position on a
+  // hard refresh. Without this, reopening/reloading the site can land
+  // you mid-page (e.g. on Awards) and the code below then — correctly —
+  // highlights whatever section you happen to be sitting on, which looks
+  // like "the nav points at the wrong thing" but is really just an old
+  // scroll position being restored.
+  if ("scrollRestoration" in history) {
+    history.scrollRestoration = "manual";
+  }
+
   var sections = document.querySelectorAll("section[id]");
   var navA = navLinks.querySelectorAll("a");
   function setActiveLink(){
@@ -56,6 +66,13 @@
     });
   }
   window.addEventListener("scroll", setActiveLink, { passive:true });
+  // Recompute once more after everything (fonts, images) has finished
+  // loading and section heights/offsets are final — a plain page load
+  // with no hash in the URL should always land on "Home".
+  window.addEventListener("load", function(){
+    if (!location.hash) window.scrollTo(0, 0);
+    setActiveLink();
+  });
   setActiveLink();
 
   /* ============================================================
@@ -275,7 +292,7 @@
         card.className = "album-card reveal";
         card.setAttribute("data-album", i);
         card.innerHTML =
-          '<img src="'+cover+'" alt="'+loc.name+' — completed solar projects" loading="lazy">' +
+          '<img src="'+cover+'" alt="'+loc.name+' — completed solar projects" loading="lazy" onerror="this.onerror=null;this.src=\'assets/images/dummy.png\';">' +
           '<div class="album-label"><h4>'+loc.name+'</h4><span>' +
           loc.projects.length + (loc.projects.length === 1 ? ' project' : ' projects') +
           ' · ' + totalPhotos + ' photos</span></div>';
@@ -293,7 +310,7 @@
         card.className = "album-card reveal";
         card.setAttribute("data-project", i);
         card.innerHTML =
-          '<img src="'+cover+'" alt="'+loc.name+' '+proj.name+'" loading="lazy">' +
+          '<img src="'+cover+'" alt="'+loc.name+' '+proj.name+'" loading="lazy" onerror="this.onerror=null;this.src=\'assets/images/dummy.png\';">' +
           '<div class="album-label"><h4>'+proj.name+'</h4><span>' +
           proj.photos.length + ' photos</span></div>';
         subAlbumGrid.appendChild(card);
@@ -312,7 +329,7 @@
         var item = document.createElement("div");
         item.className = "proj-item reveal";
         item.setAttribute("data-index", i);
-        item.innerHTML = '<img src="'+s+'" alt="'+loc.name+' '+proj.name+' photo '+(i+1)+'" loading="lazy"><span class="plus"></span>';
+        item.innerHTML = '<img src="'+s+'" alt="'+loc.name+' '+proj.name+' photo '+(i+1)+'" loading="lazy" onerror="this.onerror=null;this.src=\'assets/images/dummy.png\';"><span class="plus"></span>';
         photoGrid.appendChild(item);
       });
       showView("photos");
