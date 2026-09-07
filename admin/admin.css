@@ -220,38 +220,6 @@ input:focus-visible{ outline: 2px solid var(--gold); outline-offset: 1px; }
 }
 .page-thumb-remove:hover{ background: var(--danger); }
 
-/* ---------- gallery project photo thumbnails ---------- */
-.gallery-photo-grid{
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
-  gap: 10px;
-  margin-top: 10px;
-}
-.gallery-photo-thumb{
-  position: relative;
-  border: 1px solid var(--line-2);
-  border-radius: 4px;
-  overflow: hidden;
-  aspect-ratio: 4/3;
-  background: var(--panel-2);
-}
-.gallery-photo-thumb img{ width: 100%; height: 100%; object-fit: cover; display: block; }
-.gallery-photo-remove{
-  position: absolute;
-  top: 4px;
-  right: 4px;
-  width: 20px;
-  height: 20px;
-  border-radius: 50%;
-  border: none;
-  background: rgba(11,53,86,0.85);
-  color: #fff;
-  font-size: 11px;
-  line-height: 1;
-  cursor: pointer;
-}
-.gallery-photo-remove:hover{ background: var(--danger); }
-
 .backup-list{
   list-style: none;
   margin: 8px 0 0;
@@ -290,3 +258,99 @@ input:focus-visible{ outline: 2px solid var(--gold); outline-offset: 1px; }
 }
 .attachment-item-actions form{ margin: 0; }
 .attachment-item-actions .btn{ padding: 7px 16px; font-size: 13px; }
+
+/* ---------- tab navigation (Projects / Attachments / Awards) ---------- */
+.admin-tabs{
+  display: flex;
+  gap: 4px;
+  padding: 0 clamp(20px, 4vw, 48px);
+  background: var(--panel);
+  border-bottom: 1px solid var(--line);
+  overflow-x: auto;
+}
+.admin-tab{
+  display: inline-block;
+  padding: 14px 18px;
+  font-family: var(--font-display);
+  font-weight: 600;
+  font-size: 14px;
+  color: var(--muted);
+  text-decoration: none;
+  border-bottom: 2px solid transparent;
+  white-space: nowrap;
+}
+.admin-tab:hover{ color: var(--ink-text); }
+.admin-tab.is-active{ color: var(--gold); border-bottom-color: var(--gold); }
+
+/* ---------- Projects / Awards pages ---------- */
+.admin-card-head{
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+.admin-card-head form{ margin: 0; }
+.admin-card-head h3{ margin: 0; font-family: var(--font-display); font-size: 15px; }
+
+.inline-form{
+  flex-direction: row;
+  align-items: flex-end;
+  gap: 10px;
+  margin-top: 16px;
+  padding-top: 16px;
+  border-top: 1px solid var(--line);
+}
+.inline-form label{ flex: 1; }
+
+.project-block{
+  margin-top: 20px;
+  padding-top: 20px;
+  border-top: 1px solid var(--line);
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.thumb-grid{
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(110px, 1fr));
+  gap: 10px;
+}
+.thumb-item{
+  position: relative;
+  border: 1px solid var(--line-2);
+  border-radius: 4px;
+  overflow: hidden;
+  aspect-ratio: 1/1;
+  background: var(--panel-2);
+}
+.thumb-item img{ width: 100%; height: 100%; object-fit: cover; display: block; }
+.thumb-item form{ margin: 0; }
+.thumb-remove{
+  position: absolute;
+  top: 4px;
+  right: 4px;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  border: none;
+  background: rgba(11,53,86,0.85);
+  color: #fff;
+  font-size: 11px;
+  line-height: 1;
+  cursor: pointer;
+}
+.thumb-remove:hover{ background: var(--danger); }
+
+.award-item{ aspect-ratio: auto; display: flex; flex-direction: column; }
+.award-item img{ aspect-ratio: 4/3; }
+.award-caption{
+  padding: 8px;
+  font-size: 12px;
+  color: var(--ink-text);
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.award-caption span{ color: var(--muted); font-family: var(--font-mono); font-size: 11px; }
