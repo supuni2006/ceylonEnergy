@@ -58,6 +58,23 @@ function ce_api_base() {
 }
 
 /**
+ * Say WHERE ce_api_base() got its answer.
+ *
+ * "localhost:5050" reaching the screen has three completely different
+ * causes — no .env file, an .env without the key, or an .env that
+ * genuinely says localhost — and they need three different fixes. Left
+ * undistinguished they produce one identical banner, so someone who has
+ * already written the file correctly re-reads it over and over looking
+ * for a mistake that is not there.
+ *
+ * Returns 'env' | 'env-missing-key' | 'no-env-file'.
+ */
+function ce_api_base_source() {
+    if (ce_env('GALLERY_API_BASE') !== null) return 'env';
+    return is_readable(SITE_ROOT . '/.env') ? 'env-missing-key' : 'no-env-file';
+}
+
+/**
  * Attach a header collector to a cURL handle so we can see WHO answered,
  * not just what they said.
  *

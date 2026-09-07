@@ -38,8 +38,21 @@ ce_admin_header('projects', 'Project Gallery');
     <div class="notice notice-error">
       <strong>Adding and removing photos will not work yet.</strong>
       <?= htmlspecialchars($api['problem']) ?>
-      <span class="fine-print">(The panel looks for the API at <?= htmlspecialchars(ce_api_base()) ?> — set <code>GALLERY_API_BASE</code> in <code>.env</code> to change that. The gallery below still lists everything, because that is read from a local file.)</span>
-      <br><a href="check-env.php">Open the setup check</a> to see the exact path this panel reads <code>.env</code> from, and whether it found yours.
+      <span class="fine-print">
+        <?php switch (ce_api_base_source()):
+          case 'no-env-file': ?>
+            (There is no <code>.env</code> file at <code><?= htmlspecialchars(SITE_ROOT) ?>/.env</code>, so the panel fell back to its built-in
+            <code>http://localhost:5050</code>. Create that file — the path is exact, not a suggestion.)
+        <?php break; case 'env-missing-key': ?>
+            (Your <code>.env</code> at <code><?= htmlspecialchars(SITE_ROOT) ?>/.env</code> is being read, but it has no
+            <code>GALLERY_API_BASE</code> line, so the panel fell back to its built-in <code>http://localhost:5050</code>. Add the line.)
+        <?php break; default: ?>
+            (Your <code>.env</code> is being read and it says <code>GALLERY_API_BASE=<?= htmlspecialchars(ce_api_base()) ?></code>.
+            That address is the problem, not the file — change it to wherever the backend actually runs.)
+        <?php endswitch; ?>
+        The gallery below still lists everything, because that is read from a local file.
+      </span>
+      <br><a href="check-env.php">Open the setup check</a> for the full picture — the exact path, what parsed, and what answered.
     </div>
   <?php elseif (($api['health']['mongo'] ?? '') !== 'connected'): ?>
     <div class="notice notice-error">
