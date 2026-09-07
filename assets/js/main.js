@@ -43,6 +43,16 @@
     });
   });
 
+  // Stop the browser silently restoring the last scroll position on a
+  // hard refresh. Without this, reopening/reloading the site can land
+  // you mid-page (e.g. on Awards) and the code below then — correctly —
+  // highlights whatever section you happen to be sitting on, which looks
+  // like "the nav points at the wrong thing" but is really just an old
+  // scroll position being restored.
+  if ("scrollRestoration" in history) {
+    history.scrollRestoration = "manual";
+  }
+
   var sections = document.querySelectorAll("section[id]");
   var navA = navLinks.querySelectorAll("a");
   function setActiveLink(){
@@ -56,6 +66,13 @@
     });
   }
   window.addEventListener("scroll", setActiveLink, { passive:true });
+  // Recompute once more after everything (fonts, images) has finished
+  // loading and section heights/offsets are final — a plain page load
+  // with no hash in the URL should always land on "Home".
+  window.addEventListener("load", function(){
+    if (!location.hash) window.scrollTo(0, 0);
+    setActiveLink();
+  });
   setActiveLink();
 
   /* ============================================================
@@ -160,12 +177,7 @@
      and the first project's first photo is used as the location cover.
      ============================================================ */
   var CP = "assets/images/completed-projects/";
-  var PROJECTS_JSON_PATH = "assets/data/projects.json";
-
-  // Fallback only — used if assets/data/projects.json can't be fetched
-  // (e.g. opened as a local file). The admin "Projects" page is the real,
-  // editable source of truth once the site is served normally.
-  var DEFAULT_ALBUMS = [
+  var ALBUMS = [
     {
       name: "Rathnapura",
       projects: [
@@ -222,7 +234,7 @@
     }
   ];
 
-  function initGallery(ALBUMS){
+  (function initGallery(){
     var crumbs      = document.getElementById("galleryCrumbs");
     var albumGrid    = document.getElementById("albumGrid");
     var subAlbumGrid = document.getElementById("subAlbumGrid");
@@ -280,7 +292,7 @@
         card.className = "album-card reveal";
         card.setAttribute("data-album", i);
         card.innerHTML =
-          '<img src="'+cover+'" alt="'+loc.name+' — completed solar projects" loading="lazy">' +
+          '<img src="'+cover+'" alt="'+loc.name+' — completed solar projects" loading="lazy" onerror="this.onerror=null;this.src=\'assets/images/dummy.png\';">' +
           '<div class="album-label"><h4>'+loc.name+'</h4><span>' +
           loc.projects.length + (loc.projects.length === 1 ? ' project' : ' projects') +
           ' · ' + totalPhotos + ' photos</span></div>';
@@ -298,7 +310,7 @@
         card.className = "album-card reveal";
         card.setAttribute("data-project", i);
         card.innerHTML =
-          '<img src="'+cover+'" alt="'+loc.name+' '+proj.name+'" loading="lazy">' +
+          '<img src="'+cover+'" alt="'+loc.name+' '+proj.name+'" loading="lazy" onerror="this.onerror=null;this.src=\'assets/images/dummy.png\';">' +
           '<div class="album-label"><h4>'+proj.name+'</h4><span>' +
           proj.photos.length + ' photos</span></div>';
         subAlbumGrid.appendChild(card);
@@ -317,7 +329,7 @@
         var item = document.createElement("div");
         item.className = "proj-item reveal";
         item.setAttribute("data-index", i);
-        item.innerHTML = '<img src="'+s+'" alt="'+loc.name+' '+proj.name+' photo '+(i+1)+'" loading="lazy"><span class="plus"></span>';
+        item.innerHTML = '<img src="'+s+'" alt="'+loc.name+' '+proj.name+' photo '+(i+1)+'" loading="lazy" onerror="this.onerror=null;this.src=\'assets/images/dummy.png\';"><span class="plus"></span>';
         photoGrid.appendChild(item);
       });
       showView("photos");
@@ -381,16 +393,7 @@
     showView("albums");
     renderCrumbs();
     renderAlbums();
-  }
-
-  if (window.fetch){
-    fetch(PROJECTS_JSON_PATH, { cache: "no-store" })
-      .then(function(r){ return r.ok ? r.json() : null; })
-      .then(function(data){ initGallery(Array.isArray(data) && data.length ? data : DEFAULT_ALBUMS); })
-      .catch(function(){ initGallery(DEFAULT_ALBUMS); });
-  } else {
-    initGallery(DEFAULT_ALBUMS);
-  }
+  })();
 
   /* ============================================================
      CONTACT FORM
@@ -807,107 +810,5 @@
       .then(function(r){ return r.ok ? r.json() : null; })
       .then(function(data){ if (Array.isArray(data)) renderAdditionalDocs(data); })
       .catch(function(){ /* no additional documents yet */ });
-  }
-})();
-
-/* ============================================================
-   AWARDS — populated from assets/data/awards.json, editable
-   via the admin "Awards" page.
-   ============================================================ */
-(function(){
-  "use strict";
-
-  var AWARDS_JSON_PATH = "assets/data/awards.json";
-  var section = document.getElementById("awards");
-  var grid    = document.getElementById("awardsGrid");
-  var empty   = document.getElementById("awardsEmpty");
-  if (!grid) return;
-
-  var lightbox = document.getElementById("awardLightbox");
-  var lbImg    = document.getElementById("awardLbImg");
-  var lbCap    = document.getElementById("awardLbCaption");
-  var lbIndex  = 0;
-  var items    = [];
-
-  function openLightbox(i){
-    lbIndex = i;
-    var a = items[lbIndex];
-    lbImg.src = a.imageUrl;
-    lbImg.alt = a.title || "Award";
-    if (lbCap) lbCap.textContent = a.title + (a.year ? " — " + a.year : "");
-    lightbox.classList.add("is-open");
-  }
-  function closeLightbox(){ lightbox.classList.remove("is-open"); }
-  function stepLightbox(dir){
-    openLightbox((lbIndex + dir + items.length) % items.length);
-  }
-
-  if (lightbox){
-    var closeBtn = document.getElementById("awardLbClose");
-    var prevBtn  = document.getElementById("awardLbPrev");
-    var nextBtn  = document.getElementById("awardLbNext");
-    if (closeBtn) closeBtn.addEventListener("click", closeLightbox);
-    if (prevBtn) prevBtn.addEventListener("click", function(){ stepLightbox(-1); });
-    if (nextBtn) nextBtn.addEventListener("click", function(){ stepLightbox(1); });
-    lightbox.addEventListener("click", function(e){ if (e.target === lightbox) closeLightbox(); });
-    window.addEventListener("keydown", function(e){
-      if (!lightbox.classList.contains("is-open")) return;
-      if (e.key === "Escape") closeLightbox();
-      if (e.key === "ArrowRight") stepLightbox(1);
-      if (e.key === "ArrowLeft") stepLightbox(-1);
-    });
-  }
-
-  function renderAwards(data){
-    items = Array.isArray(data) ? data : [];
-    grid.innerHTML = "";
-
-    if (!items.length){
-      if (empty) empty.hidden = false;
-      if (section) section.hidden = true; // hide the whole section when there's nothing to show yet
-      return;
-    }
-    if (empty) empty.hidden = true;
-    if (section) section.hidden = false;
-
-    items.forEach(function(a, i){
-      var cell = document.createElement("div");
-      cell.className = "cp-item";
-
-      var media = document.createElement("div");
-      media.className = "cp-item-media";
-      media.setAttribute("role", "button");
-      media.setAttribute("tabindex", "0");
-      media.setAttribute("aria-label", "View " + (a.title || "award") + " full-size");
-
-      var img = document.createElement("img");
-      img.src = a.imageUrl;
-      img.loading = "lazy";
-      img.alt = a.title || "Award";
-      media.appendChild(img);
-
-      var openThis = function(){ openLightbox(i); };
-      media.addEventListener("click", openThis);
-      media.addEventListener("keydown", function(e){
-        if (e.key === "Enter" || e.key === " "){ e.preventDefault(); openThis(); }
-      });
-      cell.appendChild(media);
-
-      var label = document.createElement("span");
-      label.className = "cp-item-label";
-      label.textContent = a.title + (a.year ? " · " + a.year : "");
-      cell.appendChild(label);
-
-      grid.appendChild(cell);
-    });
-  }
-
-  if (window.fetch){
-    fetch(AWARDS_JSON_PATH, { cache: "no-store" })
-      .then(function(r){ return r.ok ? r.json() : null; })
-      .then(function(data){ renderAwards(data); })
-      .catch(function(){ renderAwards([]); });
-  } else {
-    renderAwards([]);
   }
 })();
