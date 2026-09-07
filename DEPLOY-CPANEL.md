@@ -270,6 +270,41 @@ rather than a helpful message. Go to cPanel → **SSL/TLS Status**, tick
 shows a valid certificate. (Skip this if you used the `/nodeapi` folder
 option in A2 — your main certificate already covers it.)
 
+**A-help. "Directory should not contain spaces" and CREATE will not go through.**
+
+This one wastes afternoons, because the field it names usually looks
+perfectly clean. Two things to know first: the red toast **stays on
+screen until you click its ✕**, so what you are looking at may be the
+previous attempt rather than a new one — dismiss it before judging. And
+a pasted value is the usual culprit: copying a name out of a table or a
+chat message drags an invisible trailing space along with it.
+
+Find it by halving the form instead of guessing:
+
+1. Hard-reload the page (**Cmd/Ctrl + Shift + R**) to clear any stale
+   form state, and dismiss the toast.
+2. Fill in **only the five fields at the top** — version, mode, root,
+   URL, startup file — and **delete every environment-variable row**.
+   Click **CREATE**.
+
+That splits the problem in half:
+
+- **It creates.** The bad value was in an environment variable, not a
+  path. Add them back one at a time from the app's own page. The usual
+  offender is `ALLOWED_ORIGINS`, because a comma-separated list is
+  natural to type as `a.com, b.com` — that space after the comma has to
+  go: `https://ceylonenergyservices.com,https://www.ceylonenergyservices.com`
+- **It still fails.** The problem is one of the five fields. Clear each
+  one with **Cmd/Ctrl + A** then **Delete**, and retype it by hand —
+  never paste. If it still refuses, create the folder in File Manager
+  first, then type the first few letters into Application root and
+  **click the folder from the autocomplete dropdown** rather than
+  finishing the word. A value chosen from that list cannot contain
+  stray whitespace.
+
+If cPanel keeps refusing after all of that, do not keep fighting it —
+Option B below gets the same backend running in about five minutes.
+
 **A9. Start it and check.**
 
 Click **Restart** on the app, then open this in your browser:
@@ -296,17 +331,30 @@ If not, read what you got:
 | `404` with `{"ok":false,"error":"No route for GET /..."}` | The app is running fine, you just asked for the wrong path. Check you typed `/api/health` |
 
 
-### Option B — no Node.js in your cPanel
+### Option B — no Node.js in your cPanel (or cPanel will not cooperate)
 
-Host the backend somewhere that does Node for free (Render, Railway,
-Fly.io — Render's free tier is the usual choice) and deploy this same
-repository there with start command `npm start`. Set every variable from
-A4 in that host's own environment-variables screen. It gives you a URL
-like `https://ceylon-energy-api.onrender.com` — that URL is what goes
-into `GALLERY_API_BASE`.
+Host the backend somewhere that runs Node for free. Render is the usual
+choice: **New → Web Service** → connect this GitHub repository →
+Runtime **Node**, Build command `npm install`, Start command
+`npm start`. Put every variable from A4 into its **Environment** tab —
+`ALLOWED_ORIGINS` and `ADMIN_API_TOKEN` included, `PORT` excluded, since
+Render sets that itself and `server/config/env.js` already reads it.
 
-Everything else in this guide is unchanged. The PHP panel does not care
-where the backend lives, only that it can reach it over HTTPS.
+Allow Render's outbound IPs in Atlas → Network Access, the same way as
+step A7.
+
+You get a URL like `https://ceylon-energy-api.onrender.com`. That is
+what goes into `GALLERY_API_BASE` — nothing else in this guide changes,
+because the PHP panel does not care where the backend lives, only that
+it can reach it over HTTPS.
+
+> **The one catch with a free tier:** it sleeps after about 15 minutes
+> of no traffic and takes up to a minute to wake. The admin panel's
+> health check gives up after 5 seconds, so the first visit after a
+> quiet spell shows the red banner even though nothing is wrong —
+> wait a moment and reload and it clears. Uploads themselves wait far
+> longer (2 minutes) and go through fine. A paid always-on instance, or
+> getting cPanel's own Node.js working, avoids the annoyance entirely.
 
 ---
 
