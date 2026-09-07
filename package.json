@@ -1,0 +1,25 @@
+{
+  "name": "ceylon-energy-backend",
+  "version": "1.0.0",
+  "description": "Ceylon Energy Services \u2014 project gallery API backed by MongoDB Atlas + Cloudinary",
+  "main": "server/server.js",
+  "type": "commonjs",
+  "scripts": {
+    "start": "node server/server.js",
+    "dev": "node --watch server/server.js",
+    "migrate": "node server/scripts/migrate-to-cloudinary.js",
+    "export": "node server/scripts/export-json.js",
+    "check-db": "node server/scripts/check-connection.js"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "dependencies": {
+    "cloudinary": "^2.5.1",
+    "cors": "^2.8.5",
+    "dotenv": "^16.4.5",
+    "express": "^5.1.0",
+    "mongoose": "^8.9.5",
+    "multer": "^2.0.2"
+  }
+}

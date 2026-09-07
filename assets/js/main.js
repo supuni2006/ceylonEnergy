@@ -168,71 +168,113 @@
   /* ============================================================
      PROJECT GALLERY — LOCATIONS -> PROJECTS (SUB-ALBUMS) -> PHOTOS
      ============================================================
-     EDIT THIS DATA to match your real sites/projects/photos.
-     Each location = one album (e.g. "Belihuloya").
-     Each location has one or more projects (sub-albums, e.g. "Project 01").
-     Each project has a list of photo files from
-     assets/images/completed-projects/
-     The FIRST photo in each project is used as its cover image,
-     and the first project's first photo is used as the location cover.
-     ============================================================ */
-  var CP = "assets/images/completed-projects/";
-  var ALBUMS = [
-    {
-      name: "Rathnapura",
-      projects: [
-        { name: "Belihuloya project 01", photos: [1,3,4,5] },
-        { name: "Belihuloya project 02", photos: [8,7,6,9] },
-        { name: "Sabaragamuwa University", photos: [39,37,38,36] },
-        { name: "Udawalawa project", photos: [42,41,40] }
+     The gallery is no longer hardcoded here. Photos live in
+     Cloudinary and the tree that describes them lives in MongoDB
+     Atlas, so adding a project through the admin panel is enough —
+     this file never needs editing again.
 
-      ]
-    },
-    {
-      name: "Colombo",
-      projects: [
-        { name: "Project 01", photos: [10,11,12,13] },
-        { name: "Project 02", photos: [14,16,17] },
-        { name: "Project 03", photos: [46,47,48] },
-        { name: "Wellampitiya", photos: [43,44,45] },
-        { name: "Moratuwa", photos: [49,50,51] },
-        { name: "Microchip Solution - Moratuwa", photos: [58,56,57,55,59] },
-        
-        
-      ]
-    },
-    {
-      name: "Gampaha",
-      projects: [
-        { name: "Wattala (I C M Perera 's site) ", photos: [63,64,65,68] }
-      ]
-    },
-    {
-      name: "piliyandala",
-      projects: [
-        { name: "B C D Mendis 's site", photos: [67,69,70] }
-      ]
-    },
-    {
-      name: "Dehiwala",
-      projects: [
-        { name: "Project 01", photos: [30,31] },
-        { name: "G S Indika Perera's site", photos: [60,61,62] }
-      ]
-    },
-    {
-      name: "Kaluthara",
-      projects: [
-        { name: "Project 01", photos: [33,34] }
-      ]
-    },
-    {
-      name: "Bandaragama",
-      projects: [
-        { name: "Project 01", photos: [52,53,54] }
-      ]
-    }
-  ];
+     Data is loaded in this order, first one that works wins:
+
+       1. GALLERY_API   — live from the backend (always current)
+       2. GALLERY_JSON  — the static file written by "npm run export",
+                          so the gallery survives a backend outage
+
+     Both return the same shape, and every photo arrives with the
+     Cloudinary URLs already built:
+
+       { thumb, medium, large, caption }
+     ============================================================ */
+
+  // Point this at your deployed API. Leave it as "" to skip the live
+  // call and read the static file only.
+  var GALLERY_API  = window.CE_GALLERY_API || "";
+  var GALLERY_JSON = "assets/data/projects.json";
+  var PLACEHOLDER  = "assets/images/dummy.png";
+
+  var ALBUMS = [];
+
+  /**
+   * Escape text before it goes into innerHTML. Location and project
+   * names now come from the database rather than from this file, so a
+   * name containing a quote or an angle bracket would otherwise break
+   * the surrounding markup.
+   */
+  function esc(str){
+    return String(str == null ? "" : str)
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;")
+      .replace(/"/g, "&quot;")
+      .replace(/'/g, "&#39;");
+  }
+
+  /**
+   * Both sources may hand us slightly different envelopes, so this
+   * flattens either into the one shape the render code below expects.
+   */
+  function normaliseGallery(payload) {
+    var list = Array.isArray(payload) ? payload : (payload && payload.locations) || [];
+    return list.map(function (loc) {
+      var projects = (loc.projects || []).map(function (proj) {
+        var photos = (proj.photos || []).map(function (photo) {
+          // A plain string is the old on-disk path format; an object is
+          // the Cloudinary shape. Accept both so nothing breaks mid-migration.
+          if (typeof photo === "string") {
+            return { thumb: photo, medium: photo, large: photo, caption: "" };
+          }
+          return {
+            thumb: photo.thumb || photo.medium || photo.url || PLACEHOLDER,
+            medium: photo.medium || photo.url || photo.thumb || PLACEHOLDER,
+            large: photo.large || photo.medium || photo.url || PLACEHOLDER,
+            caption: photo.caption || ""
+          };
+        });
+        return {
+          name: proj.name || "Project",
+          photos: photos,
+          cover: (proj.cover && proj.cover.thumb) || (photos[0] && photos[0].thumb) || PLACEHOLDER
+        };
+      });
+
+      return {
+        name: loc.name || "Location",
+        projects: projects,
+        cover:
+          (loc.cover && loc.cover.thumb) ||
+          (projects[0] && projects[0].cover) ||
+          PLACEHOLDER
+      };
+    }).filter(function (loc) { return loc.projects.length > 0; });
+  }
+
+  /** Try the API, then the static file. Resolves to [] if both fail. */
+  function loadGallery() {
+    if (!window.fetch) return Promise.resolve([]);
+
+    var fromJson = function () {
+      return fetch(GALLERY_JSON, { cache: "no-store" })
+        .then(function (r) { return r.ok ? r.json() : []; })
+        .catch(function () { return []; });
+    };
+
+    if (!GALLERY_API) return fromJson().then(normaliseGallery);
+
+    return fetch(GALLERY_API.replace(/\/$/, "") + "/api/projects", { cache: "no-store" })
+      .then(function (r) {
+        if (!r.ok) throw new Error("API responded " + r.status);
+        return r.json();
+      })
+      .then(normaliseGallery)
+      .then(function (albums) {
+        // An API that is up but empty still means the static file is
+        // the better answer, so treat "no locations" as a miss.
+        if (!albums.length) throw new Error("API returned nothing");
+        return albums;
+      })
+      .catch(function () {
+        return fromJson().then(normaliseGallery);
+      });
+  }
 
   (function initGallery(){
     var crumbs      = document.getElementById("galleryCrumbs");
@@ -245,7 +287,12 @@
     var activeSrcs = [];
     var activeAlbum = null;
 
-    function src(n){ return CP + "project-" + n + ".jpg"; }
+    // Photos now arrive with their Cloudinary URLs already built, so
+    // there is nothing to construct here. Kept as a named helper so the
+    // render functions below read the same as before.
+    function src(photo){ return (photo && photo.medium) || PLACEHOLDER; }
+    function coverSrc(photo){ return (photo && photo.thumb) || PLACEHOLDER; }
+    function fullSrc(photo){ return (photo && photo.large) || PLACEHOLDER; }
 
     function revealCards(selector){
       var cards = document.querySelectorAll(selector);
@@ -273,11 +320,11 @@
       if (activeAlbum){
         parts.push('<span class="sep">/</span>');
         if (photoGrid.hidden){
-          parts.push('<span class="current">'+activeAlbum.name+'</span>');
+          parts.push('<span class="current">'+esc(activeAlbum.name)+'</span>');
         } else {
-          parts.push('<button type="button" data-nav="projects">'+activeAlbum.name+'</button>');
+          parts.push('<button type="button" data-nav="projects">'+esc(activeAlbum.name)+'</button>');
           parts.push('<span class="sep">/</span>');
-          parts.push('<span class="current">'+activeAlbum.activeProjectName+'</span>');
+          parts.push('<span class="current">'+esc(activeAlbum.activeProjectName)+'</span>');
         }
       }
       crumbs.innerHTML = parts.join(" ");
@@ -287,13 +334,13 @@
       albumGrid.innerHTML = "";
       ALBUMS.forEach(function(loc, i){
         var totalPhotos = loc.projects.reduce(function(sum, p){ return sum + p.photos.length; }, 0);
-        var cover = src(loc.projects[0].photos[0]);
+        var cover = loc.cover || coverSrc(loc.projects[0] && loc.projects[0].photos[0]);
         var card = document.createElement("div");
         card.className = "album-card reveal";
         card.setAttribute("data-album", i);
         card.innerHTML =
-          '<img src="'+cover+'" alt="'+loc.name+' — completed solar projects" loading="lazy" onerror="this.onerror=null;this.src=\'assets/images/dummy.png\';">' +
-          '<div class="album-label"><h4>'+loc.name+'</h4><span>' +
+          '<img src="'+esc(cover)+'" alt="'+esc(loc.name)+' — completed solar projects" loading="lazy" onerror="this.onerror=null;this.src=\''+PLACEHOLDER+'\';">' +
+          '<div class="album-label"><h4>'+esc(loc.name)+'</h4><span>' +
           loc.projects.length + (loc.projects.length === 1 ? ' project' : ' projects') +
           ' · ' + totalPhotos + ' photos</span></div>';
         albumGrid.appendChild(card);
@@ -305,13 +352,13 @@
       activeAlbum = loc;
       subAlbumGrid.innerHTML = "";
       loc.projects.forEach(function(proj, i){
-        var cover = src(proj.photos[0]);
+        var cover = proj.cover || coverSrc(proj.photos[0]);
         var card = document.createElement("div");
         card.className = "album-card reveal";
         card.setAttribute("data-project", i);
         card.innerHTML =
-          '<img src="'+cover+'" alt="'+loc.name+' '+proj.name+'" loading="lazy" onerror="this.onerror=null;this.src=\'assets/images/dummy.png\';">' +
-          '<div class="album-label"><h4>'+proj.name+'</h4><span>' +
+          '<img src="'+esc(cover)+'" alt="'+esc(loc.name)+' '+esc(proj.name)+'" loading="lazy" onerror="this.onerror=null;this.src=\''+PLACEHOLDER+'\';">' +
+          '<div class="album-label"><h4>'+esc(proj.name)+'</h4><span>' +
           proj.photos.length + ' photos</span></div>';
         subAlbumGrid.appendChild(card);
       });
@@ -323,13 +370,17 @@
     function renderPhotos(loc, proj){
       activeAlbum = loc;
       loc.activeProjectName = proj.name;
-      activeSrcs = proj.photos.map(src);
+      // Grid shows the mid-size version; the lightbox swaps in the large
+      // one, so opening a photo is the only time full detail is fetched.
+      activeSrcs = proj.photos.map(fullSrc);
+      var gridSrcs = proj.photos.map(src);
       photoGrid.innerHTML = "";
-      activeSrcs.forEach(function(s, i){
+      gridSrcs.forEach(function(s, i){
         var item = document.createElement("div");
         item.className = "proj-item reveal";
         item.setAttribute("data-index", i);
-        item.innerHTML = '<img src="'+s+'" alt="'+loc.name+' '+proj.name+' photo '+(i+1)+'" loading="lazy" onerror="this.onerror=null;this.src=\'assets/images/dummy.png\';"><span class="plus"></span>';
+        var alt = (proj.photos[i] && proj.photos[i].caption) || (loc.name + ' ' + proj.name + ' photo ' + (i+1));
+        item.innerHTML = '<img src="'+esc(s)+'" alt="'+esc(alt)+'" loading="lazy" onerror="this.onerror=null;this.src=\''+PLACEHOLDER+'\';"><span class="plus"></span>';
         photoGrid.appendChild(item);
       });
       showView("photos");
@@ -390,9 +441,20 @@
       if (e.key === "ArrowLeft") stepLightbox(-1);
     });
 
+    // Nothing can render until the gallery data has arrived, so the
+    // first paint is an empty grid that fills in a moment later.
     showView("albums");
     renderCrumbs();
-    renderAlbums();
+
+    loadGallery().then(function(albums){
+      ALBUMS = albums;
+      if (!ALBUMS.length){
+        // Better an honest empty state than a grid of broken images.
+        albumGrid.innerHTML = '<p class="muted">Our project gallery is being updated — please check back shortly.</p>';
+        return;
+      }
+      renderAlbums();
+    });
   })();
 
   /* ============================================================
