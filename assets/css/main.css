@@ -989,6 +989,24 @@ footer.site-footer{ background: var(--teal); border-top: 1px solid var(--teal); 
 @media (max-width: 640px){ .cp-grid{ grid-template-columns: repeat(2,1fr); } }
 
 /* =========================================================
+   AWARDS
+   Award cards reuse .cp-item, but an award is a certificate,
+   plaque or logo rather than a document cover: object-fit:cover
+   would crop a portrait certificate's top and bottom off, so
+   show the whole image letterboxed inside the tile instead.
+   ========================================================= */
+#awardsGrid .cp-item-media{
+  background: var(--panel-2);
+}
+#awardsGrid .cp-item-media img{
+  object-fit: contain;
+  padding: 10px;
+}
+/* The tile is what lifts on hover; the image scaling up inside a
+   "contain" box just makes it drift about, so hold it still. */
+#awardsGrid .cp-item:hover .cp-item-media img{ transform: none; }
+
+/* =========================================================
    COMPANY PROFILE — full-screen page viewer modal
    (this block was missing, which let the modal render
    in normal page flow instead of as a fixed overlay —
