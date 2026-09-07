@@ -39,6 +39,7 @@ ce_admin_header('projects', 'Project Gallery');
       <strong>Adding and removing photos will not work yet.</strong>
       <?= htmlspecialchars($api['problem']) ?>
       <span class="fine-print">(The panel looks for the API at <?= htmlspecialchars(ce_api_base()) ?> — set <code>GALLERY_API_BASE</code> in <code>.env</code> to change that. The gallery below still lists everything, because that is read from a local file.)</span>
+      <br><a href="check-env.php">Open the setup check</a> to see the exact path this panel reads <code>.env</code> from, and whether it found yours.
     </div>
   <?php elseif (($api['health']['mongo'] ?? '') !== 'connected'): ?>
     <div class="notice notice-error">
