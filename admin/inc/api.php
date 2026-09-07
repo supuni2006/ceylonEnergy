@@ -54,7 +54,73 @@ function ce_env($key, $default = null) {
 
 /** Base URL of the gallery API, without a trailing slash. */
 function ce_api_base() {
-    return rtrim(ce_env('GALLERY_API_BASE', 'http://localhost:5000'), '/');
+    return rtrim(ce_env('GALLERY_API_BASE', 'http://localhost:5050'), '/');
+}
+
+/**
+ * Attach a header collector to a cURL handle so we can see WHO answered,
+ * not just what they said.
+ *
+ * This matters more than it sounds. Our API only ever refuses a request
+ * with 401 (bad token) — it has no 403 anywhere. So a 403 arriving here
+ * proves the reply came from some other program that happens to hold the
+ * port. Its "Server:" header names it, which turns an unexplainable
+ * status code into an obvious cause.
+ */
+function ce_capture_server_header($ch, &$serverHeader) {
+    $serverHeader = '';
+    curl_setopt($ch, CURLOPT_HEADERFUNCTION, function ($ch, $line) use (&$serverHeader) {
+        if (stripos($line, 'Server:') === 0) {
+            $serverHeader = trim(substr($line, 7));
+        }
+        return strlen($line); // cURL requires the byte count back
+    });
+}
+
+/**
+ * Turn a failed response into a sentence that says what to actually do.
+ *
+ * $data is the decoded JSON body, or null when the reply was not JSON —
+ * which is itself a strong hint, because every error our API produces is
+ * JSON with an "error" key.
+ */
+function ce_api_explain_failure($status, $serverHeader, $data) {
+    $base = ce_api_base();
+
+    // macOS ships AirPlay Receiver listening on port 5000, and it answers
+    // every request with "403 Forbidden". Because it can share the port,
+    // "npm start" still prints "listening on 5000" — so the server looks
+    // fine while nothing ever reaches it. This is the single most likely
+    // reason anyone sees a 403 here.
+    if (stripos($serverHeader, 'AirTunes') !== false || stripos($serverHeader, 'AirPlay') !== false) {
+        return 'macOS AirPlay Receiver is answering at ' . $base . ', not your gallery API. '
+             . 'It quietly shares port ' . ce_api_port() . ' and rejects everything with 403, so your requests '
+             . 'never reach the backend even though "npm start" says it is running. '
+             . 'Fix it by moving the API to a free port: set PORT=5050 and '
+             . 'GALLERY_API_BASE=http://localhost:5050 in .env, then restart "npm start" and reload. '
+             . '(Turning off System Settings > General > AirDrop & Handoff > AirPlay Receiver also works.)';
+    }
+
+    // A JSON body with an "error" key means this really was our API, so
+    // its own message is the most accurate thing we can show.
+    if (is_array($data) && !empty($data['error'])) {
+        return $data['error'];
+    }
+
+    // Answered, but not in our API's language — some other service owns
+    // this address.
+    $who = $serverHeader !== '' ? ' It identifies itself as "' . $serverHeader . '".' : '';
+    return 'Something answered at ' . $base . ' with HTTP ' . $status
+         . ', but it is not the gallery API.' . $who
+         . ' Either another program is using that port, or GALLERY_API_BASE in .env points '
+         . 'at the wrong address. Check what is on the port with:  lsof -i :' . ce_api_port();
+}
+
+/** The port number out of GALLERY_API_BASE, for use in help messages. */
+function ce_api_port() {
+    $port = parse_url(ce_api_base(), PHP_URL_PORT);
+    if ($port) return (string)$port;
+    return parse_url(ce_api_base(), PHP_URL_SCHEME) === 'https' ? '443' : '80';
 }
 
 /**
@@ -97,6 +163,7 @@ function ce_api_request($method, $path, array $fields = [], array $files = []) {
         // while on a slow connection, so this is generous on purpose.
         CURLOPT_TIMEOUT        => 120,
     ]);
+    ce_capture_server_header($ch, $serverHeader);
 
     $body   = curl_exec($ch);
     $status = (int)curl_getinfo($ch, CURLINFO_HTTP_CODE);
@@ -117,10 +184,10 @@ function ce_api_request($method, $path, array $fields = [], array $files = []) {
     $data = json_decode($body, true);
 
     if ($status < 200 || $status >= 300) {
-        $msg = is_array($data) && !empty($data['error'])
-            ? $data['error']
-            : 'The gallery API returned HTTP ' . $status . '.';
-        return ['ok' => false, 'status' => $status, 'data' => $data, 'error' => $msg];
+        return [
+            'ok' => false, 'status' => $status, 'data' => $data,
+            'error' => ce_api_explain_failure($status, $serverHeader, $data),
+        ];
     }
 
     return ['ok' => true, 'status' => $status, 'data' => $data, 'error' => null];
@@ -179,18 +246,55 @@ function ce_refresh_static_json() {
     return true;
 }
 
-/** Quick check used by the admin screen to warn when the backend is down. */
-function ce_api_health() {
+/**
+ * Check the backend before the admin screen lets anyone try to use it.
+ *
+ * The previous version returned null for every kind of failure, so
+ * "nothing is listening" and "something is listening but it is not us"
+ * produced the identical message: "the backend is not responding, start
+ * it with npm start". When the backend WAS running that advice was not
+ * just unhelpful, it pointed away from the real problem. This tells the
+ * three cases apart.
+ *
+ * Returns:
+ *   ['ok' => true,  'health' => [...], 'problem' => null]
+ *   ['ok' => false, 'health' => null,  'problem' => 'sentence to show']
+ */
+function ce_api_probe() {
     $ch = curl_init(ce_api_base() . '/api/health');
     curl_setopt_array($ch, [
         CURLOPT_RETURNTRANSFER => true,
         CURLOPT_CONNECTTIMEOUT => 3,
         CURLOPT_TIMEOUT        => 5,
+        CURLOPT_HTTPHEADER     => ['Accept: application/json'],
     ]);
+    ce_capture_server_header($ch, $serverHeader);
+
     $body   = curl_exec($ch);
     $status = (int)curl_getinfo($ch, CURLINFO_HTTP_CODE);
+    $err    = curl_error($ch);
     unset($ch); // see the note above — no curl_close() on PHP 8.5+
 
-    if ($body === false || $status !== 200) return null;
-    return json_decode($body, true);
+    // Case 1: nothing accepted the connection at all. This is the only
+    // case where "it is not running" is the right thing to say.
+    if ($body === false) {
+        return [
+            'ok' => false, 'health' => null,
+            'problem' => 'Nothing is listening at ' . ce_api_base() . ' (' . $err . '). '
+                       . 'Start the backend from the project folder with "npm start", then reload this page.',
+        ];
+    }
+
+    $data = json_decode($body, true);
+
+    // Case 2: our API answered and named itself. The only good outcome.
+    if ($status === 200 && is_array($data) && ($data['service'] ?? '') === 'ceylon-energy-api') {
+        return ['ok' => true, 'health' => $data, 'problem' => null];
+    }
+
+    // Case 3: someone answered, but it was not us.
+    return [
+        'ok' => false, 'health' => null,
+        'problem' => ce_api_explain_failure($status, $serverHeader, $data),
+    ];
 }

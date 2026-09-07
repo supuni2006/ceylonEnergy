@@ -128,9 +128,26 @@ npm run dev        # restarts on file changes
 Check it is alive:
 
 ```bash
-curl http://localhost:5000/api/health
-curl http://localhost:5000/api/projects
+curl http://localhost:5050/api/health
+curl http://localhost:5050/api/projects
 ```
+
+### Why port 5050 and not 5000
+
+On macOS, the built-in **AirPlay Receiver** holds port 5000 and answers
+every request with `403 Forbidden`. It shares the port rather than taking
+it, so Node still starts and prints `API listening on http://localhost:5000`
+— but nothing ever reaches your code. The admin panel then shows "the
+backend is not responding" while the terminal insists it is running, and
+every upload fails with a 403 that appears nowhere in the server log.
+
+The server now checks this itself at startup and says so plainly if
+something else is answering on its port, so you are never guessing.
+
+If you must use 5000, turn the service off in
+**System Settings → General → AirDrop & Handoff → AirPlay Receiver**.
+Changing the port is easier, and `PORT` and `GALLERY_API_BASE` in `.env`
+must always agree.
 
 ---
 
@@ -192,7 +209,7 @@ to slightly-stale, never to a grid of broken thumbnails.
 Example upload:
 
 ```bash
-curl -X POST http://localhost:5000/api/projects/loc-colombo/proj-project-01/photos \
+curl -X POST http://localhost:5050/api/projects/loc-colombo/proj-project-01/photos \
   -H "Authorization: Bearer YOUR_ADMIN_API_TOKEN" \
   -F "photos=@/path/to/photo1.jpg" \
   -F "photos=@/path/to/photo2.jpg"
@@ -291,3 +308,6 @@ local files.
 | Gallery empty, browser console shows a CORS error | Add your site's address to `ALLOWED_ORIGINS` |
 | Gallery shows "being updated" | Both the API and `projects.json` failed — check `npm run check-db` |
 | `413` on upload | Image over 10MB, or more than 20 files at once |
+| Everything fails with `403`, but `npm start` says it is listening | Something else owns the port. On macOS that is AirPlay Receiver on port 5000 — set `PORT=5050` and `GALLERY_API_BASE=http://localhost:5050` in `.env`, then restart. The server prints a warning naming the culprit at startup. |
+| `Port 5050 is already in use` | Another copy of the server is still running, or something else holds the port. Find it with `lsof -i :5050`, or pick a different `PORT` (and matching `GALLERY_API_BASE`) |
+| Admin panel says "Nothing is listening at ..." | The backend really is stopped — start it with `npm start`. Any other wording means something answered, and the message says who |
