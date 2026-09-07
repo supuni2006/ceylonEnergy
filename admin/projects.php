@@ -23,7 +23,7 @@ ce_admin_header('projects', 'Project Gallery');
     // needs the backend running. The list below still renders without
     // it, which would otherwise make this page look perfectly fine
     // right up until the first upload fails.
-    $apiHealth = ce_api_health();
+    $api = ce_api_probe();
     if (ce_env('ADMIN_API_TOKEN') === 'replace_with_a_long_random_string'):
   ?>
     <div class="notice notice-error">
@@ -34,15 +34,13 @@ ce_admin_header('projects', 'Project Gallery');
       <br><code>node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"</code>
       <br>Then restart the backend.
     </div>
-  <?php elseif ($apiHealth === null): ?>
+  <?php elseif (!$api['ok']): ?>
     <div class="notice notice-error">
-      <strong>The gallery backend is not responding.</strong>
-      You can still browse below, but adding or removing photos will not work
-      until it is running. Start it from the project folder with
-      <code>npm start</code>, then reload this page.
-      <span class="fine-print">(Looking for it at <?= htmlspecialchars(ce_api_base()) ?> — set <code>GALLERY_API_BASE</code> in <code>.env</code> to change that.)</span>
+      <strong>Adding and removing photos will not work yet.</strong>
+      <?= htmlspecialchars($api['problem']) ?>
+      <span class="fine-print">(The panel looks for the API at <?= htmlspecialchars(ce_api_base()) ?> — set <code>GALLERY_API_BASE</code> in <code>.env</code> to change that. The gallery below still lists everything, because that is read from a local file.)</span>
     </div>
-  <?php elseif (($apiHealth['mongo'] ?? '') !== 'connected'): ?>
+  <?php elseif (($api['health']['mongo'] ?? '') !== 'connected'): ?>
     <div class="notice notice-error">
       <strong>The backend is running but cannot reach MongoDB Atlas.</strong>
       Check your <code>MONGODB_URI</code> in <code>.env</code>, and that this

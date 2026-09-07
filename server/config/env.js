@@ -18,7 +18,9 @@ function read(name, fallback = undefined) {
 
 const env = {
   nodeEnv: read('NODE_ENV', 'development'),
-  port: parseInt(read('PORT', '5000'), 10),
+  // Not 5000: macOS's AirPlay Receiver squats on that port and answers
+  // 403 to everything, which looks exactly like a broken API.
+  port: parseInt(read('PORT', '5050'), 10),
 
   // MongoDB Atlas
   mongoUri: read('MONGODB_URI'),

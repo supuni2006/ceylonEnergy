@@ -69,12 +69,74 @@ app.use((err, req, res, next) => {
   });
 });
 
+/**
+ * Confirm that requests to this port actually reach US.
+ *
+ * Binding a port and owning it are not the same thing. macOS's AirPlay
+ * Receiver holds port 5000 in a way that still lets Node bind it, so the
+ * server prints "listening" and looks perfectly healthy — while AirPlay
+ * answers the real connections with "403 Forbidden". Every admin upload
+ * then fails for a reason that appears nowhere in this log, because the
+ * request never arrived.
+ *
+ * One request to ourselves at startup turns that into a clear message.
+ */
+async function verifyPortReachesUs(port) {
+  // "localhost" resolves to either stack depending on the machine, and a
+  // squatter may hold only one of them, so check both. Nothing answering
+  // on an address is fine (it just means we are not bound there) — only
+  // a reply from someone who is not us is worth reporting.
+  for (const [label, host] of [['IPv4', '127.0.0.1'], ['IPv6', '[::1]']]) {
+    let res;
+    try {
+      res = await fetch(`http://${host}:${port}/api/health`, {
+        signal: AbortSignal.timeout(3000),
+      });
+    } catch {
+      continue;
+    }
+
+    const body = await res.json().catch(() => null);
+    if (res.ok && body && body.service === 'ceylon-energy-api') continue; // that is us
+
+    const who = res.headers.get('server') || '';
+    console.error(`\n  Warning: port ${port} does not reach this server over ${label}.`);
+    console.error(
+      `   http://${host}:${port}/api/health answered HTTP ${res.status}` +
+        (who ? ` from "${who}".` : ' from another program.')
+    );
+    if (/airtunes|airplay/i.test(who)) {
+      console.error("   That is macOS's AirPlay Receiver. It shares the port and rejects");
+      console.error('   everything with 403, so the admin panel never reaches this server.');
+    } else if (port === 5000) {
+      console.error('   On macOS this is usually AirPlay Receiver, which holds port 5000');
+      console.error('   and rejects everything with 403.');
+    }
+    console.error('   Fix: move the API to a free port. In .env set');
+    console.error('        PORT=5050  and  GALLERY_API_BASE=http://localhost:5050');
+    console.error('   then restart this server and reload the admin page.\n');
+  }
+}
+
 async function start() {
   await connectDB();
-  const server = app.listen(env.port, () => {
+  const server = app.listen(env.port, async () => {
     console.log(`  API listening on http://localhost:${env.port}`);
     console.log(`   Gallery:  GET http://localhost:${env.port}/api/projects`);
     console.log(`   Health:   GET http://localhost:${env.port}/api/health`);
+    await verifyPortReachesUs(env.port);
+  });
+
+  // A port already taken is reported by Node as a bare "EADDRINUSE",
+  // which does not say which port or what to do about it.
+  server.on('error', (err) => {
+    if (err.code === 'EADDRINUSE') {
+      console.error(`\n  Port ${env.port} is already in use by another program.`);
+      console.error(`   See what is holding it:  lsof -i :${env.port}`);
+      console.error('   Or pick a free one: set PORT and GALLERY_API_BASE in .env.\n');
+      process.exit(1);
+    }
+    throw err;
   });
 
   // Close sockets cleanly so Atlas does not keep stale connections open
@@ -98,3 +160,5 @@ if (require.main === module) {
 }
 
 module.exports = { app, start };
+// Exported for tests: checkable on its own without booting the whole server.
+module.exports.verifyPortReachesUs = verifyPortReachesUs;
