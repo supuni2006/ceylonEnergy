@@ -1,125 +1,109 @@
 <?php
+/**
+ * Ceylon Energy Services — Admin: project gallery
+ *
+ * Photos live in Cloudinary and the gallery structure lives in MongoDB
+ * Atlas. This file no longer writes image files or JSON directly:
+ *
+ *   Reading  — from assets/data/projects.json, which is a copy of what
+ *              the backend holds. Reading from the file rather than the
+ *              API means this screen still lists everything when the
+ *              backend is stopped.
+ *   Writing  — through the API in server/, which updates Cloudinary and
+ *              MongoDB together and then refreshes that same file.
+ *
+ * The previous version numbered photos (project-1.jpg, project-2.jpg)
+ * and stored the numbers. Photos are now objects carrying their
+ * Cloudinary URLs, so anything that treated a photo as an integer has
+ * been removed rather than adapted — casting one of those objects to int
+ * is what made every thumbnail request project-1.jpg.
+ */
 require_once __DIR__ . '/config.php';
+require_once __DIR__ . '/api.php';
 
 /**
- * Legacy/default gallery data — used only the very first time
- * projects.json doesn't exist yet, so nothing on the live site breaks.
- * After the first load this file on disk is always the source of truth.
+ * Load the gallery for display.
+ *
+ * Unlike the old version this never writes the file back — the backend
+ * is the source of truth, and a read should not be able to change it.
  */
-function ce_default_projects() {
-    return [
-        ['name' => 'Rathnapura', 'projects' => [
-            ['name' => 'Belihuloya project 01', 'photos' => [1, 3, 4, 5]],
-            ['name' => 'Belihuloya project 02', 'photos' => [8, 7, 6, 9]],
-            ['name' => 'Sabaragamuwa University', 'photos' => [39, 37, 38, 36]],
-            ['name' => 'Udawalawa project', 'photos' => [42, 41, 40]],
-        ]],
-        ['name' => 'Colombo', 'projects' => [
-            ['name' => 'Project 01', 'photos' => [10, 11, 12, 13]],
-            ['name' => 'Project 02', 'photos' => [14, 16, 17]],
-            ['name' => 'Project 03', 'photos' => [46, 47, 48]],
-            ['name' => 'Wellampitiya', 'photos' => [43, 44, 45]],
-            ['name' => 'Moratuwa', 'photos' => [49, 50, 51]],
-            ['name' => 'Microchip Solution - Moratuwa', 'photos' => [58, 56, 57, 55, 59]],
-        ]],
-        ['name' => 'Gampaha', 'projects' => [
-            ['name' => "Wattala (I C M Perera 's site)", 'photos' => [63, 64, 65, 68]],
-        ]],
-        ['name' => 'piliyandala', 'projects' => [
-            ['name' => "B C D Mendis 's site", 'photos' => [67, 69, 70]],
-        ]],
-        ['name' => 'Dehiwala', 'projects' => [
-            ['name' => 'Project 01', 'photos' => [30, 31]],
-            ['name' => "G S Indika Perera's site", 'photos' => [60, 61, 62]],
-        ]],
-        ['name' => 'Kaluthara', 'projects' => [
-            ['name' => 'Project 01', 'photos' => [33, 34]],
-        ]],
-        ['name' => 'Bandaragama', 'projects' => [
-            ['name' => 'Project 01', 'photos' => [52, 53, 54]],
-        ]],
-    ];
-}
+function ce_load_projects() {
+    if (!file_exists(PROJECTS_JSON)) return [];
 
-/** Make sure every location/project has a stable id, assigning one if missing. */
-function ce_ensure_project_ids($locations, &$changed) {
-    foreach ($locations as &$loc) {
-        if (empty($loc['id'])) { $loc['id'] = bin2hex(random_bytes(4)); $changed = true; }
-        if (!isset($loc['projects']) || !is_array($loc['projects'])) $loc['projects'] = [];
+    $json = json_decode(file_get_contents(PROJECTS_JSON), true);
+    if (!is_array($json)) return [];
+
+    // Normalise so the template can assume every key exists.
+    foreach ($json as &$loc) {
+        $loc['id']       = $loc['id']   ?? '';
+        $loc['name']     = $loc['name'] ?? '';
+        $loc['projects'] = is_array($loc['projects'] ?? null) ? $loc['projects'] : [];
+
         foreach ($loc['projects'] as &$proj) {
-            if (empty($proj['id'])) { $proj['id'] = bin2hex(random_bytes(4)); $changed = true; }
-            if (!isset($proj['photos']) || !is_array($proj['photos'])) $proj['photos'] = [];
+            $proj['id']     = $proj['id']   ?? '';
+            $proj['name']   = $proj['name'] ?? '';
+            $proj['photos'] = is_array($proj['photos'] ?? null) ? $proj['photos'] : [];
         }
         unset($proj);
     }
     unset($loc);
-    return $locations;
+
+    return $json;
 }
 
-function ce_load_projects() {
-    if (file_exists(PROJECTS_JSON)) {
-        $json = json_decode(file_get_contents(PROJECTS_JSON), true);
-        $locations = is_array($json) ? $json : [];
-        $hadFile = true;
-    } else {
-        $locations = ce_default_projects();
-        $hadFile = false;
-    }
-
-    $changed = false;
-    $locations = ce_ensure_project_ids($locations, $changed);
-    if ($changed || !$hadFile) {
-        ce_save_projects($locations);
-    }
-    return $locations;
+/**
+ * Best display URL for one photo.
+ *
+ * Photos are objects since the move to Cloudinary, but a gallery that
+ * has not been migrated yet may still hold plain path strings — both are
+ * accepted so the panel never renders a broken thumbnail mid-migration.
+ */
+function ce_photo_thumb($photo) {
+    if (is_string($photo)) return $photo;
+    if (!is_array($photo)) return 'assets/images/dummy.png';
+    return $photo['thumb'] ?? $photo['medium'] ?? $photo['large'] ?? 'assets/images/dummy.png';
 }
 
-function ce_save_projects($locations) {
-    $dir = dirname(PROJECTS_JSON);
-    if (!is_dir($dir)) mkdir($dir, 0755, true);
-    $tmp = PROJECTS_JSON . '.tmp';
-    file_put_contents($tmp, json_encode(array_values($locations), JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES));
-    rename($tmp, PROJECTS_JSON);
+/** The id used to delete one photo. */
+function ce_photo_id($photo) {
+    return is_array($photo) ? (string)($photo['id'] ?? '') : '';
 }
 
-/** Next free photo number, so newly uploaded photos never collide with existing project-N.jpg files. */
-function ce_projects_next_photo_number($locations) {
-    $max = 0;
-    foreach ($locations as $loc) {
-        foreach ($loc['projects'] as $proj) {
-            foreach ($proj['photos'] as $n) {
-                if ((int)$n > $max) $max = (int)$n;
-            }
-        }
-    }
-    return $max + 1;
-}
+/* ------------------------------------------------------------------ */
+/* Writes — all go through the API                                     */
+/* ------------------------------------------------------------------ */
 
-function ce_add_location($name) {
-    $name = trim($name);
-    if ($name === '') return false;
-    $locations = ce_load_projects();
-    $locations[] = ['id' => bin2hex(random_bytes(4)), 'name' => $name, 'projects' => []];
-    ce_save_projects($locations);
+/**
+ * Every write follows the same shape: call the API, and on success
+ * refresh the local copy so the next page load shows the change.
+ * Returns true, or an error message string to show the user.
+ */
+function ce_apply_write($method, $path, array $fields = [], array $files = []) {
+    $res = ce_api_request($method, $path, $fields, $files);
+    if (!$res['ok']) return $res['error'];
+    ce_refresh_static_json();
     return true;
 }
 
-function ce_add_project($locationId, $projectName) {
-    $projectName = trim($projectName);
-    if ($projectName === '') return false;
-    $locations = ce_load_projects();
-    foreach ($locations as &$loc) {
-        if ($loc['id'] !== $locationId) continue;
-        $loc['projects'][] = ['id' => bin2hex(random_bytes(4)), 'name' => $projectName, 'photos' => []];
-        ce_save_projects($locations);
-        return true;
-    }
-    return false;
+function ce_add_location($name) {
+    $name = trim((string)$name);
+    if ($name === '') return 'Please enter a location name.';
+    return ce_apply_write('POST', '/api/projects/locations', ['name' => $name]);
 }
 
-/** Validate a single uploaded project photo ($_FILES['photo']-style entry). */
+function ce_add_project($locationId, $projectName) {
+    $projectName = trim((string)$projectName);
+    if ($projectName === '') return 'Please enter a project name.';
+    return ce_apply_write(
+        'POST',
+        '/api/projects/' . rawurlencode($locationId) . '/projects',
+        ['name' => $projectName]
+    );
+}
+
+/** Validate a single uploaded photo ($_FILES['photo']-style entry). */
 function ce_validate_project_photo($file) {
-    if (empty($file) || $file['error'] === UPLOAD_ERR_NO_FILE) {
+    if (empty($file) || ($file['error'] ?? UPLOAD_ERR_NO_FILE) === UPLOAD_ERR_NO_FILE) {
         return 'Please choose a photo to upload.';
     }
     if ($file['error'] !== UPLOAD_ERR_OK) {
@@ -128,81 +112,54 @@ function ce_validate_project_photo($file) {
     if ($file['size'] > MAX_IMAGE_BYTES) {
         return 'That photo is larger than the ' . ce_human_bytes(MAX_IMAGE_BYTES) . ' limit.';
     }
+
+    // Trust the file's actual contents, not its name — an extension can
+    // say .jpg over anything at all.
     $finfo = finfo_open(FILEINFO_MIME_TYPE);
     $mime = finfo_file($finfo, $file['tmp_name']);
     finfo_close($finfo);
-    if (!in_array($mime, ['image/jpeg', 'image/png'], true)) {
-        return 'Photos must be a JPG or PNG image.';
+    if (!in_array($mime, ['image/jpeg', 'image/png', 'image/webp'], true)) {
+        return 'Photos must be a JPG, PNG or WebP image.';
     }
     return true;
 }
 
 /** $file is a validated $_FILES['photo']-style entry. */
 function ce_add_project_photo($locationId, $projectId, $file) {
-    $locations = ce_load_projects();
-    $n = ce_projects_next_photo_number($locations);
+    $finfo = finfo_open(FILEINFO_MIME_TYPE);
+    $mime  = finfo_file($finfo, $file['tmp_name']);
+    finfo_close($finfo);
 
-    if (!is_dir(PROJECTS_IMAGES_DIR)) mkdir(PROJECTS_IMAGES_DIR, 0755, true);
-    $dest = PROJECTS_IMAGES_DIR . '/project-' . $n . '.jpg';
-    if (!move_uploaded_file($file['tmp_name'], $dest)) return false;
-
-    foreach ($locations as &$loc) {
-        if ($loc['id'] !== $locationId) continue;
-        foreach ($loc['projects'] as &$proj) {
-            if ($proj['id'] !== $projectId) continue;
-            $proj['photos'][] = $n;
-            ce_save_projects($locations);
-            return true;
-        }
-    }
-
-    // couldn't find the target project — undo the file move rather than leave it orphaned
-    @unlink($dest);
-    return false;
+    return ce_apply_write(
+        'POST',
+        '/api/projects/' . rawurlencode($locationId) . '/' . rawurlencode($projectId) . '/photos',
+        [],
+        ['photos' => [
+            'tmp'  => $file['tmp_name'],
+            'name' => $file['name'],
+            'type' => $mime,
+        ]]
+    );
 }
 
-function ce_delete_photo($locationId, $projectId, $photoNumber) {
-    $locations = ce_load_projects();
-    foreach ($locations as &$loc) {
-        if ($loc['id'] !== $locationId) continue;
-        foreach ($loc['projects'] as &$proj) {
-            if ($proj['id'] !== $projectId) continue;
-            $before = count($proj['photos']);
-            $proj['photos'] = array_values(array_filter($proj['photos'], function ($n) use ($photoNumber) {
-                return (int)$n !== (int)$photoNumber;
-            }));
-            if (count($proj['photos']) === $before) return false;
-            ce_save_projects($locations);
-            $img = PROJECTS_IMAGES_DIR . '/project-' . (int)$photoNumber . '.jpg';
-            if (file_exists($img)) @unlink($img);
-            return true;
-        }
-    }
-    return false;
+function ce_delete_photo($locationId, $projectId, $photoId) {
+    $photoId = (string)$photoId;
+    if ($photoId === '') return 'That photo has no id — try reloading the page.';
+
+    return ce_apply_write(
+        'DELETE',
+        '/api/projects/' . rawurlencode($locationId) . '/' . rawurlencode($projectId)
+            . '/photos/' . rawurlencode($photoId)
+    );
 }
 
 function ce_delete_project($locationId, $projectId) {
-    $locations = ce_load_projects();
-    foreach ($locations as &$loc) {
-        if ($loc['id'] !== $locationId) continue;
-        $before = count($loc['projects']);
-        $loc['projects'] = array_values(array_filter($loc['projects'], function ($p) use ($projectId) {
-            return $p['id'] !== $projectId;
-        }));
-        if (count($loc['projects']) === $before) return false;
-        ce_save_projects($locations);
-        return true;
-    }
-    return false;
+    return ce_apply_write(
+        'DELETE',
+        '/api/projects/' . rawurlencode($locationId) . '/' . rawurlencode($projectId)
+    );
 }
 
 function ce_delete_location($locationId) {
-    $locations = ce_load_projects();
-    $before = count($locations);
-    $locations = array_values(array_filter($locations, function ($l) use ($locationId) {
-        return $l['id'] !== $locationId;
-    }));
-    if (count($locations) === $before) return false;
-    ce_save_projects($locations);
-    return true;
+    return ce_apply_write('DELETE', '/api/projects/' . rawurlencode($locationId));
 }

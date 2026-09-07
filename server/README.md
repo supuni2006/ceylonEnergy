@@ -218,6 +218,45 @@ would cost.
 
 ---
 
+## The admin panel
+
+`admin/projects.php` reads and writes the same gallery, so it needs the
+backend running:
+
+```bash
+npm start          # leave this running in one terminal
+./serve.sh         # the PHP site in another
+```
+
+Then open `http://localhost:8000/admin/projects.php`.
+
+How the two halves split the work:
+
+- **Listing** the gallery reads `assets/data/projects.json` directly, so
+  the admin screen still shows everything when the backend is stopped.
+- **Adding, uploading and deleting** go through the API, which updates
+  Cloudinary and MongoDB together and then rewrites that same JSON file.
+
+That second point means you do **not** need to run `npm run export` after
+using the admin panel — it refreshes the file itself. `npm run export`
+stays useful for regenerating the file by hand, e.g. after editing the
+database directly.
+
+If the backend is not running, the page shows a red banner saying so, and
+any upload fails with a message telling you to start it. Nothing is
+silently lost.
+
+`GALLERY_API_BASE` in `.env` tells the admin panel where the API is. The
+PHP side reads that file directly, so both halves share one set of
+credentials.
+
+> **Uploads now go to Cloudinary, not to disk.** Nothing is written to
+> `assets/images/completed-projects/` any more, and deleting a photo
+> removes it from Cloudinary permanently — there is no local backup copy
+> to restore from, unlike the old version.
+
+---
+
 ## Shrinking the git repository
 
 Your last push was rejected because `assets.zip` (174MB) and `admin.zip`

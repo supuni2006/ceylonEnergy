@@ -33,7 +33,11 @@ switch ($action) {
             ce_flash_set('Please enter a location name.', 'error');
             break;
         }
-        ce_add_location($name);
+        $result = ce_add_location($name);
+        if ($result !== true) {
+            ce_flash_set($result, 'error');
+            break;
+        }
         ce_flash_set('Location added.');
         break;
 
@@ -44,8 +48,9 @@ switch ($action) {
             ce_flash_set('Please enter a project name.', 'error');
             break;
         }
-        if (!ce_add_project($locationId, $name)) {
-            ce_flash_set('Could not add the project — location not found.', 'error');
+        $result = ce_add_project($locationId, $name);
+        if ($result !== true) {
+            ce_flash_set($result, 'error');
             break;
         }
         ce_flash_set('Project added.');
@@ -59,40 +64,44 @@ switch ($action) {
             ce_flash_set($check, 'error');
             break;
         }
-        if (!ce_add_project_photo($locationId, $projectId, $_FILES['photo'])) {
-            ce_flash_set('Could not save the photo. Please check server file permissions and try again.', 'error');
+        $result = ce_add_project_photo($locationId, $projectId, $_FILES['photo']);
+        if ($result !== true) {
+            ce_flash_set($result, 'error');
             break;
         }
-        ce_flash_set('Photo added — it now shows on the live website.');
+        ce_flash_set('Photo uploaded to Cloudinary — it now shows on the live website.');
         break;
 
     case 'delete_photo':
         $locationId = (string)($_POST['location_id'] ?? '');
         $projectId  = (string)($_POST['project_id'] ?? '');
-        $photo      = (int)($_POST['photo'] ?? 0);
-        if (ce_delete_photo($locationId, $projectId, $photo)) {
-            ce_flash_set('Photo removed.');
+        $photo      = (string)($_POST['photo'] ?? '');
+        $result = ce_delete_photo($locationId, $projectId, $photo);
+        if ($result === true) {
+            ce_flash_set('Photo removed from the gallery and from Cloudinary.');
         } else {
-            ce_flash_set('Could not find that photo — it may already be removed.', 'error');
+            ce_flash_set($result, 'error');
         }
         break;
 
     case 'delete_project':
         $locationId = (string)($_POST['location_id'] ?? '');
         $projectId  = (string)($_POST['project_id'] ?? '');
-        if (ce_delete_project($locationId, $projectId)) {
-            ce_flash_set('Project removed.');
+        $result = ce_delete_project($locationId, $projectId);
+        if ($result === true) {
+            ce_flash_set('Project removed, along with its photos.');
         } else {
-            ce_flash_set('Could not find that project — it may already be removed.', 'error');
+            ce_flash_set($result, 'error');
         }
         break;
 
     case 'delete_location':
         $locationId = (string)($_POST['location_id'] ?? '');
-        if (ce_delete_location($locationId)) {
-            ce_flash_set('Location removed.');
+        $result = ce_delete_location($locationId);
+        if ($result === true) {
+            ce_flash_set('Location removed, along with everything in it.');
         } else {
-            ce_flash_set('Could not find that location — it may already be removed.', 'error');
+            ce_flash_set($result, 'error');
         }
         break;
 

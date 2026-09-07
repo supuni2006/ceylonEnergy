@@ -18,6 +18,30 @@ ce_admin_header('projects', 'Project Gallery');
     <div class="notice notice-<?= $flash['type'] === 'error' ? 'error' : 'ok' ?>" id="admin-flash" tabindex="-1"><?= htmlspecialchars($flash['msg']) ?></div>
   <?php endif; ?>
 
+  <?php
+    // Photos are stored in Cloudinary now, so adding or removing one
+    // needs the backend running. The list below still renders without
+    // it, which would otherwise make this page look perfectly fine
+    // right up until the first upload fails.
+    $apiHealth = ce_api_health();
+    if ($apiHealth === null):
+  ?>
+    <div class="notice notice-error">
+      <strong>The gallery backend is not responding.</strong>
+      You can still browse below, but adding or removing photos will not work
+      until it is running. Start it from the project folder with
+      <code>npm start</code>, then reload this page.
+      <span class="fine-print">(Looking for it at <?= htmlspecialchars(ce_api_base()) ?> — set <code>GALLERY_API_BASE</code> in <code>.env</code> to change that.)</span>
+    </div>
+  <?php elseif (($apiHealth['mongo'] ?? '') !== 'connected'): ?>
+    <div class="notice notice-error">
+      <strong>The backend is running but cannot reach MongoDB Atlas.</strong>
+      Check your <code>MONGODB_URI</code> in <code>.env</code>, and that this
+      server's IP is allowed under Atlas &rarr; Network Access.
+      Run <code>npm run check-db</code> for a clearer message.
+    </div>
+  <?php endif; ?>
+
   <section class="admin-card">
     <h2>Add a location</h2>
     <p class="muted">Locations group projects on the live site (e.g. "Colombo", "Kaluthara") and show up as the first level of the gallery.</p>
@@ -72,15 +96,16 @@ ce_admin_header('projects', 'Project Gallery');
 
         <?php if ($proj['photos']): ?>
         <div class="thumb-grid">
-          <?php foreach ($proj['photos'] as $n): ?>
+          <?php foreach ($proj['photos'] as $photo): ?>
             <div class="thumb-item">
-              <img src="../assets/images/completed-projects/project-<?= (int)$n ?>.jpg" loading="lazy" alt="">
-              <form method="post" action="project-actions.php" onsubmit="return confirm('Remove this photo?');">
+              <img src="<?= htmlspecialchars(ce_photo_thumb($photo)) ?>" loading="lazy" alt=""
+                   onerror="this.onerror=null;this.src='../assets/images/dummy.png';">
+              <form method="post" action="project-actions.php" onsubmit="return confirm('Remove this photo? It is deleted from Cloudinary and cannot be undone.');">
                 <input type="hidden" name="csrf" value="<?= htmlspecialchars($csrf) ?>">
                 <input type="hidden" name="action" value="delete_photo">
                 <input type="hidden" name="location_id" value="<?= htmlspecialchars($loc['id']) ?>">
                 <input type="hidden" name="project_id" value="<?= htmlspecialchars($proj['id']) ?>">
-                <input type="hidden" name="photo" value="<?= (int)$n ?>">
+                <input type="hidden" name="photo" value="<?= htmlspecialchars(ce_photo_id($photo)) ?>">
                 <button class="thumb-remove" type="submit" aria-label="Remove photo">✕</button>
               </form>
             </div>
