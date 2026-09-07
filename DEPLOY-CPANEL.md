@@ -144,111 +144,164 @@ Check cPanel first: **Software → Setup Node.js App**.
 
 ### Option A — cPanel's "Setup Node.js App"
 
-**A1. Make a subdomain for the API.**
-cPanel → **Domains** → **Create A Domain** →
-`api.ceylonenergyservices.com`. Using a subdomain avoids a whole class of
-confusing path problems that come from running a Node app inside a
-sub-folder of the main site.
+This is the **Create Application** form. Do the checks in order — the
+first one decides whether any of the rest is worth doing.
 
-**A2. Upload the backend outside `public_html`.**
-Create a folder `ceylon-api` in your home directory (the level *above*
-`public_html`) and upload into it:
+**A1. Open the "Node.js version" dropdown before anything else.**
+
+The form defaults to **10.24.1**, and this project *cannot* run on it.
+It needs **Node 18 or newer**, for three separate reasons:
+
+- Express 5 (the web framework) requires Node 18+.
+- `server/server.js` uses `fetch()`, which only exists as a built-in
+  from Node 18 on. On Node 10 it is an instant crash at startup.
+- Mongoose 8 (the MongoDB driver) requires Node 16+.
+
+So: open that dropdown and pick the **highest version offered** (20 or
+22 if they are there, otherwise 18).
+
+**If the dropdown's highest option is below 18, stop here.** Nothing you
+type into the rest of this form will make it work. Either ask your host
+to enable a newer Node.js, or use **Option B** below.
+
+**A2. Create the subdomain — in a second browser tab.**
+
+The "Application URL" dropdown currently only offers
+`ceylonenergyservices.com`, because `api.ceylonenergyservices.com` does
+not exist yet. Leave this form open, and in a new tab go to
+cPanel → **Domains** → **Create A Domain** → enter
+`api.ceylonenergyservices.com` → **Submit**.
+
+Then come back to this tab and **reload the page** so the new subdomain
+appears in the dropdown. (Reloading means re-picking the Node version
+from A1 — that is fine, nothing is lost.)
+
+> Prefer not to make a subdomain? You can instead leave the dropdown on
+> `ceylonenergyservices.com` and type `nodeapi` into the box next to it,
+> giving `https://ceylonenergyservices.com/nodeapi`. That works too —
+> the server now trims the folder prefix off incoming requests by
+> itself. Its one advantage is that your existing SSL certificate
+> already covers it, so you skip step A8. Everything else below is the
+> same, with `https://ceylonenergyservices.com/nodeapi` wherever this
+> guide says `https://api.ceylonenergyservices.com`.
+
+**A3. Fill in the form.**
+
+| Field | What to put | Why |
+|---|---|---|
+| Node.js version | The highest offered, **never below 18** | See A1 |
+| Application mode | **Production** | Sets `NODE_ENV=production`, which hides internal error details from strangers. The form defaults to Development |
+| Application root | `ceylon-api` | A folder in your home directory, **not** inside `public_html`. cPanel creates it for you. Keeping the backend out of the web folder means nobody can read its source over the internet |
+| Application URL | `api.ceylonenergyservices.com` | The subdomain from A2 |
+| Application startup file | `server/server.js` | The file `npm start` runs. Note the folder — it is not `app.js` |
+
+**A4. Add the environment variables — this is the "add env in cPanel" part.**
+
+Use the **Environment variables** table at the bottom of this same form.
+Click **ADD VARIABLE**, type the name and value, click **DONE**, and
+repeat. cPanel injects these straight into the app, so the backend needs
+no `.env` file of its own.
+
+| Name | Value |
+|---|---|
+| `MONGODB_URI` | Your full Atlas connection string |
+| `MONGODB_DB_NAME` | `ceylonenergy` |
+| `CLOUDINARY_CLOUD_NAME` | From Cloudinary → Settings → API Keys |
+| `CLOUDINARY_API_KEY` | Same page |
+| `CLOUDINARY_API_SECRET` | Same page |
+| `CLOUDINARY_FOLDER` | `ceylon-energy/completed-projects` |
+| `ADMIN_API_TOKEN` | Your long random token — **identical** to the one in `public_html/.env` |
+| `ALLOWED_ORIGINS` | `https://ceylonenergyservices.com,https://www.ceylonenergyservices.com` |
+
+Two things not to do:
+
+- **Do not add `PORT`.** Passenger assigns the port itself and ignores
+  yours; setting it only confuses you later.
+- **Do not add `NODE_ENV`.** The "Application mode" dropdown already
+  sets it.
+
+And one thing to watch: if your MongoDB password contains any of
+`@ : / ? # [ ] %`, it must be percent-encoded inside the URI (`p@ss`
+becomes `p%40ss`), or the driver reads the string wrong and the
+connection fails with a confusing authentication error.
+
+Now click **CREATE** (top right).
+
+**A5. Upload the backend files.**
+
+cPanel has just created `/home/YOURUSER/ceylon-api`. Open **File
+Manager**, go into it, and upload:
 
 ```
 ceylon-api/
 ├── package.json
 ├── package-lock.json
-└── server/
+└── server/          (the whole folder, with its config/ middleware/ models/ routes/ subfolders)
 ```
 
-Keeping it out of `public_html` means nobody can browse to your backend
-source code. Do **not** upload `node_modules` — cPanel builds it for you
-in step A4.
+Do **not** upload `node_modules` — it is large and the next step builds
+it properly for this server's Node version. If cPanel put a sample
+`app.js` in there, ignore it; your startup file points at
+`server/server.js`.
 
-**A3. Create the app.**
-Setup Node.js App → **Create Application**:
+**A6. Install the dependencies.**
 
-| Field | Value |
-|---|---|
-| Node.js version | 18 or newer (the project requires ≥18) |
-| Application mode | Production |
-| Application root | `ceylon-api` |
-| Application URL | `api.ceylonenergyservices.com` |
-| Application startup file | `server/server.js` |
+Back on Setup Node.js App, open your app and click **Run NPM Install**.
+It reads `package.json`, so it will fail if step A5 has not finished.
+Wait for it to report success.
 
-Click **Create**.
+**A7. Let the server reach MongoDB Atlas.**
 
-**A4. Install the dependencies.**
-On the app's page, click **Run NPM Install**. Wait for it to finish.
+Atlas → **Network Access** → **Add IP Address**. Add your cPanel
+server's IP, shown in cPanel's right-hand sidebar as "Shared IP
+Address".
 
-**A5. Give the backend its settings.**
-The backend needs *all* the credentials (unlike the PHP panel, which
-needed two). Two ways — pick one:
+Do not skip this. Atlas rejects unknown addresses by default, and the
+backend calls `connectDB()` *before* it starts listening — so a blocked
+IP means the app exits at startup and every page on the subdomain shows
+a cPanel error instead of your API.
 
-*Easier:* create a second `.env`, this time at `ceylon-api/.env` (same
-File Manager steps as before, just a different folder):
+**A8. Wait for the subdomain's SSL certificate.**
 
-```dotenv
-NODE_ENV=production
-ALLOWED_ORIGINS=https://ceylonenergyservices.com,https://www.ceylonenergyservices.com
+A brand-new subdomain has no HTTPS certificate for a few minutes, and
+until it does, the PHP panel's request will fail with an SSL error
+rather than a helpful message. Go to cPanel → **SSL/TLS Status**, tick
+`api.ceylonenergyservices.com`, and click **Run AutoSSL**. Wait until it
+shows a valid certificate. (Skip this if you used the `/nodeapi` folder
+option in A2 — your main certificate already covers it.)
 
-MONGODB_URI=mongodb+srv://USER:PASSWORD@yourcluster.xxxxx.mongodb.net/?retryWrites=true&w=majority
-MONGODB_DB_NAME=ceylonenergy
+**A9. Start it and check.**
 
-CLOUDINARY_CLOUD_NAME=your_cloud_name
-CLOUDINARY_API_KEY=your_api_key
-CLOUDINARY_API_SECRET=your_api_secret
-CLOUDINARY_FOLDER=ceylon-energy/completed-projects
-
-# EXACTLY the same string as in public_html/.env
-ADMIN_API_TOKEN=paste_the_same_long_random_token_here
-```
-
-*Or:* use the **Environment variables** box on the Setup Node.js App
-page and add the same names and values one by one. That is what your
-"Add Env In cPanel" search was about — but note it configures the **Node
-app only**. It does nothing for the PHP admin panel, which is why Step 1
-exists.
-
-Two notes on the values:
-
-- If your MongoDB password contains any of `@ : / ? # [ ] %`, it must be
-  percent-encoded in the URI (`p@ss` → `p%40ss`), or the driver silently
-  reads the string wrong.
-- Leave `PORT` out entirely. cPanel/Passenger assigns the port itself;
-  setting `PORT=5050` here helps nothing.
-
-**A6. Allow the server to reach MongoDB Atlas.**
-Atlas → **Network Access** → **Add IP Address**. Add your cPanel server's
-IP (shown in cPanel's right-hand sidebar as "Shared IP Address"). If you
-skip this, the backend starts but every request hangs and then fails —
-Atlas blocks unknown addresses by default.
-
-**A7. Start it and check.**
-Click **Restart** (or **Start**), then open:
+Click **Restart** on the app, then open this in your browser:
 
 ```
 https://api.ceylonenergyservices.com/api/health
 ```
 
-You want JSON that looks like:
+You are looking for:
 
 ```json
 {"ok":true,"service":"ceylon-energy-api","mongo":"connected","cloudinary":"configured"}
 ```
 
-- `"mongo":"disconnected"` → the Atlas IP allowlist (A6) or a wrong
-  `MONGODB_URI`.
-- A cPanel error page instead of JSON → the app did not start. The
-  **stderr log** link on the Setup Node.js App page names the reason; a
-  missing variable is printed as a plain list of what is missing.
+If you get that, the hard part is done — go to Step 4.
+
+If not, read what you got:
+
+| What you see | What it means |
+|---|---|
+| `"mongo":"disconnected"` | The Atlas IP allowlist (A7), or a wrong/badly-encoded `MONGODB_URI` |
+| `"cloudinary":"missing"` | A typo in one of the `CLOUDINARY_*` variable names |
+| A cPanel error page, not JSON | The app did not start. Open the **stderr log** link on the app's page. A missing variable is printed there as a plain list; `SyntaxError` or `fetch is not defined` means the Node version is below 18 (back to A1) |
+| `404` with `{"ok":false,"error":"No route for GET /..."}` | The app is running fine, you just asked for the wrong path. Check you typed `/api/health` |
+
 
 ### Option B — no Node.js in your cPanel
 
 Host the backend somewhere that does Node for free (Render, Railway,
 Fly.io — Render's free tier is the usual choice) and deploy this same
 repository there with start command `npm start`. Set every variable from
-A5 in that host's own environment-variables screen. It gives you a URL
+A4 in that host's own environment-variables screen. It gives you a URL
 like `https://ceylon-energy-api.onrender.com` — that URL is what goes
 into `GALLERY_API_BASE`.
 
@@ -260,7 +313,7 @@ where the backend lives, only that it can reach it over HTTPS.
 ## Step 4 — Point the panel at the real backend
 
 Go back to `public_html/.env` and set `GALLERY_API_BASE` to the address
-that returned JSON in step A7 — **without** the `/api` part and
+that returned JSON in step A9 — **without** the `/api` part and
 **without** a trailing slash:
 
 ```dotenv
@@ -286,7 +339,9 @@ The panel tries hard to tell you what is wrong. Match its wording here:
 | `Nothing is listening at http://localhost:5050` | `.env` was not found, or `GALLERY_API_BASE` is still the default | The file must be `public_html/.env` exactly, with hidden files shown so you can confirm it is there. Check for `.env.txt` — File Manager adds that silently on some setups |
 | `Nothing is listening at https://api...` | The file is being read (good) but the backend is down | Restart the app in Setup Node.js App and re-check `/api/health` |
 | `ADMIN_API_TOKEN is not set in .env` | The panel found the file but not that key | Check for a typo in the name, and that there are no spaces around the `=` |
-| `401` / `Unauthorized` on upload | The two `ADMIN_API_TOKEN` values do not match | Copy-paste the same string into both `.env` files. Watch for a trailing space |
+| `401` / `Unauthorized` on upload | The two `ADMIN_API_TOKEN` values do not match | Copy-paste one string into `public_html/.env` **and** the cPanel environment-variables table. Watch for a trailing space |
+| The subdomain shows a cPanel error, not JSON | The Node app crashed at startup | Open the **stderr log** on the Setup Node.js App page. `fetch is not defined` or a `SyntaxError` means the Node version is below 18 — see step A1 |
+| `SSL certificate problem` in the banner | The subdomain has no certificate yet | cPanel → SSL/TLS Status → Run AutoSSL (step A8) |
 | `404` from the API | `GALLERY_API_BASE` has `/api` or a trailing slash on the end | Remove it — see Step 4 |
 | Upload fails on big photos | PHP's upload limit | `.user.ini` in `public_html` raises it. Give it a few minutes — PHP caches that file |
 | Gallery lists photos but nothing can be added | Normal when the backend is down | That list comes from `assets/data/projects.json` on disk, not from the API |
@@ -298,9 +353,16 @@ The panel tries hard to tell you what is wrong. Match its wording here:
 | File | Location | Holds | Needed by |
 |---|---|---|---|
 | `.env` | `public_html/.env` | `GALLERY_API_BASE`, `ADMIN_API_TOKEN` | The PHP admin panel |
-| `.env` | `ceylon-api/.env` (or the cPanel env-vars box) | MongoDB, Cloudinary, `ADMIN_API_TOKEN`, `ALLOWED_ORIGINS` | The Node backend |
+| *(no file)* | The **Environment variables** table on the Setup Node.js App page | MongoDB, Cloudinary, `ADMIN_API_TOKEN`, `ALLOWED_ORIGINS` | The Node backend |
 | `.htaccess` | `public_html/.htaccess` | The rules that stop `.env` being downloaded | Apache |
 
-Neither `.env` is in git — `.gitignore` blocks them, on purpose. They are
-created by hand on the server, once, and they are the only place your
-real passwords exist.
+`public_html/.env` is not in git — `.gitignore` blocks it, on purpose.
+It is created by hand on the server, once. Together with the cPanel
+environment-variables table, those are the only two places your real
+passwords exist.
+
+If you would rather keep the backend's settings in a file than in the
+cPanel table, put a second `.env` at `ceylon-api/.env` with the same
+names and values — the backend loads `dotenv`, so it reads that file
+too. Use one or the other, not both, or you will spend an afternoon
+wondering which value is winning.

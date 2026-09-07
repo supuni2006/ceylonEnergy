@@ -17,6 +17,42 @@ assertRequiredEnv();
 
 const app = express();
 
+/**
+ * Strip the host's mount prefix off incoming URLs.
+ *
+ * cPanel/Passenger can publish this app under a folder of an existing
+ * site — e.g. ceylonenergyservices.com/nodeapi — and when it does, it
+ * hands the request over with that prefix still on the front. Express
+ * then looks for "/nodeapi/api/health", finds no route matching, and
+ * every single call 404s even though the app booted perfectly. That
+ * failure is baffling because the logs show a healthy server.
+ *
+ * Trimming the prefix here means the routes below stay written as plain
+ * "/api/..." paths and behave identically whether we are mounted at the
+ * root of a subdomain or inside a folder. Passenger sets
+ * PASSENGER_BASE_URI only in the folder case, so this is a no-op
+ * everywhere else, including local development.
+ */
+function withoutBaseUri(url, base) {
+  if (!base) return url;
+  const q = url.indexOf('?');
+  const path = q === -1 ? url : url.slice(0, q);
+  const query = q === -1 ? '' : url.slice(q);
+
+  if (path === base) return '/' + query;
+  if (path.startsWith(base + '/')) return path.slice(base.length) + query;
+  return url;
+}
+
+const baseUri = (process.env.PASSENGER_BASE_URI || '').replace(/\/+$/, '');
+if (baseUri) {
+  console.log(`  Mounted under ${baseUri} — trimming that prefix from requests.`);
+  app.use((req, res, next) => {
+    req.url = withoutBaseUri(req.url, baseUri);
+    next();
+  });
+}
+
 app.use(express.json({ limit: '1mb' }));
 app.use(express.urlencoded({ extended: true }));
 
@@ -162,3 +198,4 @@ if (require.main === module) {
 module.exports = { app, start };
 // Exported for tests: checkable on its own without booting the whole server.
 module.exports.verifyPortReachesUs = verifyPortReachesUs;
+module.exports.withoutBaseUri = withoutBaseUri;
