@@ -101,7 +101,10 @@ function ce_api_request($method, $path, array $fields = [], array $files = []) {
     $body   = curl_exec($ch);
     $status = (int)curl_getinfo($ch, CURLINFO_HTTP_CODE);
     $err    = curl_error($ch);
-    curl_close($ch);
+    // No curl_close() on purpose: since PHP 8.0 a handle is an object
+    // that frees itself when it goes out of scope, and calling it is
+    // deprecated as of PHP 8.5 — which prints a notice mid-page.
+    unset($ch);
 
     if ($body === false) {
         return [
@@ -186,7 +189,7 @@ function ce_api_health() {
     ]);
     $body   = curl_exec($ch);
     $status = (int)curl_getinfo($ch, CURLINFO_HTTP_CODE);
-    curl_close($ch);
+    unset($ch); // see the note above — no curl_close() on PHP 8.5+
 
     if ($body === false || $status !== 200) return null;
     return json_decode($body, true);
