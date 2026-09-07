@@ -59,6 +59,14 @@
     var pos = window.scrollY + window.innerHeight * 0.35;
     var current = sections[0] && sections[0].id;
     sections.forEach(function(s){
+      // A section that isn't rendered at all (display:none) reports
+      // offsetTop 0, so the test below would match it at every scroll
+      // position — and because the last match wins, the nav would sit
+      // permanently on whichever hidden section comes last in the DOM.
+      // That is exactly what made "Awards" stay underlined while you
+      // were reading Products. getClientRects() is empty only for
+      // elements that aren't laid out, so this skips precisely those.
+      if (!s.getClientRects().length) return;
       if (pos >= s.offsetTop) current = s.id;
     });
     navA.forEach(function(a){
@@ -873,4 +881,194 @@
       .then(function(data){ if (Array.isArray(data)) renderAdditionalDocs(data); })
       .catch(function(){ /* no additional documents yet */ });
   }
+})();
+
+/* ============================================================
+   AWARDS
+   ============================================================
+   The admin panel (admin/awards.php) saves each award into
+   assets/data/awards.json and drops the uploaded picture into
+   assets/images/awards/. Nothing on this page ever read that file,
+   which is why an award added through the admin panel showed up in
+   the admin list but never on the live site — the "Awards" section
+   had markup and styling but no code behind it. This is that
+   missing reader.
+
+   Each entry looks like:
+     { id, title, year, imageUrl, addedAt }
+   ============================================================ */
+(function(){
+  "use strict";
+
+  var AWARDS_JSON = "assets/data/awards.json";
+
+  var grid  = document.getElementById("awardsGrid");
+  var empty = document.getElementById("awardsEmpty");
+  if (!grid) return;
+
+  var lightbox  = document.getElementById("awardLightbox");
+  var lbImg     = document.getElementById("awardLbImg");
+  var lbCaption = document.getElementById("awardLbCaption");
+  var lbIndex   = 0;
+
+  var awards = [];
+
+  /** Label under a card: "Best Solar Installer · 2025", or just the title. */
+  function label(a){
+    return a.year ? a.title + " · " + a.year : a.title;
+  }
+
+  /**
+   * Keep only entries we can actually draw. An award with no imageUrl
+   * would render as a broken image, so it is skipped — and logged, so
+   * a bad entry shows up in the browser console instead of silently
+   * disappearing (the same treatment attachments get above).
+   */
+  function normalise(list){
+    return (Array.isArray(list) ? list : []).filter(function(a){
+      if (a && typeof a.imageUrl === "string" && a.imageUrl) return true;
+      console.warn("Skipping award with no imageUrl:", a);
+      return false;
+    }).map(function(a){
+      return {
+        title: (a.title && String(a.title)) || "Award",
+        year: a.year ? String(a.year) : "",
+        imageUrl: String(a.imageUrl),
+        addedAt: a.addedAt || ""
+      };
+    }).sort(function(a, b){
+      // Newest first, matching the order the admin panel lists them in.
+      return String(b.addedAt).localeCompare(String(a.addedAt));
+    });
+  }
+
+  /**
+   * Cards are built after the page-wide GSAP pass has already run, so
+   * they would keep the opacity:0 that ".reveal" sets and never fade
+   * in. Animate them here instead, with the same no-GSAP fallback the
+   * project gallery uses so the cards are never invisible.
+   */
+  function revealCards(){
+    var cards = grid.querySelectorAll(".cp-item");
+    if (window.gsap && window.ScrollTrigger){
+      gsap.utils.toArray(cards).forEach(function(el, i){
+        gsap.fromTo(el, { opacity: 0, y: 24 }, {
+          opacity: 1, y: 0, duration: 0.6, ease: "power3.out", delay: (i % 4) * 0.06,
+          scrollTrigger: { trigger: el, start: "top 95%" }
+        });
+      });
+    } else {
+      Array.prototype.forEach.call(cards, function(el){ el.style.opacity = 1; });
+    }
+  }
+
+  function render(){
+    grid.innerHTML = "";
+
+    awards.forEach(function(a, i){
+      var cell = document.createElement("div");
+      cell.className = "cp-item reveal";
+
+      var media = document.createElement("div");
+      media.className = "cp-item-media";
+      media.setAttribute("role", "button");
+      media.setAttribute("tabindex", "0");
+      media.setAttribute("aria-label", "View " + label(a));
+
+      var img = document.createElement("img");
+      img.src = a.imageUrl;
+      img.loading = "lazy";
+      img.alt = a.title;
+      // An award image can go missing (deleted off disk, a bad path).
+      // Drop the whole card rather than leave a broken-image icon in
+      // the grid, and say why in the console.
+      img.addEventListener("error", function(){
+        console.warn("Award image failed to load, hiding the card:", a.imageUrl);
+        cell.remove();
+        showEmptyIfNoCards();
+      });
+      media.appendChild(img);
+
+      var open = function(){ openLightbox(i); };
+      media.addEventListener("click", open);
+      media.addEventListener("keydown", function(e){
+        if (e.key === "Enter" || e.key === " "){ e.preventDefault(); open(); }
+      });
+      cell.appendChild(media);
+
+      var cap = document.createElement("span");
+      cap.className = "cp-item-label";
+      cap.textContent = label(a);
+      cell.appendChild(cap);
+
+      grid.appendChild(cell);
+    });
+
+    showEmptyIfNoCards();
+    revealCards();
+
+    // Adding cards changes every section offset below this one, so the
+    // scroll-driven animations and the nav highlighting both need to be
+    // told the page just got taller.
+    if (window.ScrollTrigger) ScrollTrigger.refresh();
+    window.dispatchEvent(new Event("scroll"));
+  }
+
+  function showEmptyIfNoCards(){
+    if (empty) empty.hidden = grid.children.length > 0;
+  }
+
+  /* ---- lightbox ---- */
+  function openLightbox(i){
+    if (!lightbox || !awards.length) return;
+    lbIndex = i;
+    showSlide();
+    lightbox.classList.add("is-open");
+  }
+  function closeLightbox(){
+    if (lightbox) lightbox.classList.remove("is-open");
+  }
+  function stepLightbox(dir){
+    lbIndex = (lbIndex + dir + awards.length) % awards.length;
+    showSlide();
+  }
+  function showSlide(){
+    var a = awards[lbIndex];
+    if (!a) return;
+    if (lbImg){ lbImg.src = a.imageUrl; lbImg.alt = a.title; }
+    if (lbCaption) lbCaption.textContent = label(a);
+  }
+
+  if (lightbox){
+    var prev = document.getElementById("awardLbPrev");
+    var next = document.getElementById("awardLbNext");
+    var close = document.getElementById("awardLbClose");
+    if (close) close.addEventListener("click", closeLightbox);
+    if (prev) prev.addEventListener("click", function(){ stepLightbox(-1); });
+    if (next) next.addEventListener("click", function(){ stepLightbox(1); });
+    lightbox.addEventListener("click", function(e){
+      if (e.target === lightbox) closeLightbox();
+    });
+    window.addEventListener("keydown", function(e){
+      if (!lightbox.classList.contains("is-open")) return;
+      if (e.key === "Escape") closeLightbox();
+      if (e.key === "ArrowRight") stepLightbox(1);
+      if (e.key === "ArrowLeft") stepLightbox(-1);
+    });
+  }
+
+  /* ---- load ---- */
+  showEmptyIfNoCards();
+
+  if (!window.fetch) return;
+  fetch(AWARDS_JSON, { cache: "no-store" })
+    .then(function(r){ return r.ok ? r.json() : []; })
+    .then(function(data){
+      awards = normalise(data);
+      render();
+    })
+    .catch(function(err){
+      console.warn("Could not load " + AWARDS_JSON + ":", err);
+      showEmptyIfNoCards();
+    });
 })();
