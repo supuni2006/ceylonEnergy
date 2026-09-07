@@ -1,6 +1,34 @@
 # Disable directory browsing for security
 Options -Indexes
 
+# Never serve .env or any other dotfile over the web.
+#
+# The PHP admin panel reads its settings from .env in this folder, so on
+# cPanel that file has to live inside public_html — which means Apache
+# would happily hand the MongoDB and Cloudinary passwords to anyone who
+# opened https://ceylonenergyservices.com/.env . These rules refuse that.
+<FilesMatch "^\.">
+  <IfModule mod_authz_core.c>
+    Require all denied
+  </IfModule>
+  <IfModule !mod_authz_core.c>
+    Order allow,deny
+    Deny from all
+  </IfModule>
+</FilesMatch>
+
+# Same for the backend's own files, in case the whole project folder
+# (and not just the website part) was uploaded into public_html.
+<FilesMatch "^(package\.json|package-lock\.json|serve\.sh|local-php\.ini)$">
+  <IfModule mod_authz_core.c>
+    Require all denied
+  </IfModule>
+  <IfModule !mod_authz_core.c>
+    Order allow,deny
+    Deny from all
+  </IfModule>
+</FilesMatch>
+
 # php -- BEGIN cPanel-generated handler, do not edit
 # Set the “ea-php84” package as the default “PHP” programming language.
 <IfModule mime_module>

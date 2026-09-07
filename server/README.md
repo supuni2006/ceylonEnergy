@@ -153,6 +153,11 @@ must always agree.
 
 ## Pointing the website at the API
 
+> Deploying to cPanel shared hosting? Read **[../DEPLOY-CPANEL.md](../DEPLOY-CPANEL.md)**
+> instead — it covers where each `.env` file goes on the server and how to
+> get this backend running there, which is the usual cause of the admin
+> panel's "nothing is listening at localhost:5050" banner.
+
 In `index.html`, before `main.js` loads, add:
 
 ```html
