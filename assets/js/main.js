@@ -159,14 +159,70 @@
      The FIRST photo in each project is used as its cover image,
      and the first project's first photo is used as the location cover.
      ============================================================ */
-  // GALLERY_JSON_PATH is the admin-managed data file: locations -> projects
-  // -> photos (already full URLs). It's edited via the admin panel's
-  // "Project Gallery" section (add-location.php / add-project.php /
-  // add-project-photos.php) — never hand-edit this array here anymore.
-  var GALLERY_JSON_PATH = "assets/docs/gallery.json";
-  var ALBUMS = [];
+  var CP = "assets/images/completed-projects/";
+  var PROJECTS_JSON_PATH = "assets/data/projects.json";
 
-  (function initGallery(){
+  // Fallback only — used if assets/data/projects.json can't be fetched
+  // (e.g. opened as a local file). The admin "Projects" page is the real,
+  // editable source of truth once the site is served normally.
+  var DEFAULT_ALBUMS = [
+    {
+      name: "Rathnapura",
+      projects: [
+        { name: "Belihuloya project 01", photos: [1,3,4,5] },
+        { name: "Belihuloya project 02", photos: [8,7,6,9] },
+        { name: "Sabaragamuwa University", photos: [39,37,38,36] },
+        { name: "Udawalawa project", photos: [42,41,40] }
+
+      ]
+    },
+    {
+      name: "Colombo",
+      projects: [
+        { name: "Project 01", photos: [10,11,12,13] },
+        { name: "Project 02", photos: [14,16,17] },
+        { name: "Project 03", photos: [46,47,48] },
+        { name: "Wellampitiya", photos: [43,44,45] },
+        { name: "Moratuwa", photos: [49,50,51] },
+        { name: "Microchip Solution - Moratuwa", photos: [58,56,57,55,59] },
+        
+        
+      ]
+    },
+    {
+      name: "Gampaha",
+      projects: [
+        { name: "Wattala (I C M Perera 's site) ", photos: [63,64,65,68] }
+      ]
+    },
+    {
+      name: "piliyandala",
+      projects: [
+        { name: "B C D Mendis 's site", photos: [67,69,70] }
+      ]
+    },
+    {
+      name: "Dehiwala",
+      projects: [
+        { name: "Project 01", photos: [30,31] },
+        { name: "G S Indika Perera's site", photos: [60,61,62] }
+      ]
+    },
+    {
+      name: "Kaluthara",
+      projects: [
+        { name: "Project 01", photos: [33,34] }
+      ]
+    },
+    {
+      name: "Bandaragama",
+      projects: [
+        { name: "Project 01", photos: [52,53,54] }
+      ]
+    }
+  ];
+
+  function initGallery(ALBUMS){
     var crumbs      = document.getElementById("galleryCrumbs");
     var albumGrid    = document.getElementById("albumGrid");
     var subAlbumGrid = document.getElementById("subAlbumGrid");
@@ -177,8 +233,7 @@
     var activeSrcs = [];
     var activeAlbum = null;
 
-    // photos in ALBUMS are already full URLs from gallery.json
-    function src(p){ return p; }
+    function src(n){ return CP + "project-" + n + ".jpg"; }
 
     function revealCards(selector){
       var cards = document.querySelectorAll(selector);
@@ -219,18 +274,15 @@
     function renderAlbums(){
       albumGrid.innerHTML = "";
       ALBUMS.forEach(function(loc, i){
-        var projects = loc.projects || [];
-        var totalPhotos = projects.reduce(function(sum, p){ return sum + (p.photos || []).length; }, 0);
-        var firstPhoto = projects.length && projects[0].photos && projects[0].photos.length
-          ? projects[0].photos[0] : "assets/images/dummy.png";
-        var cover = src(firstPhoto);
+        var totalPhotos = loc.projects.reduce(function(sum, p){ return sum + p.photos.length; }, 0);
+        var cover = src(loc.projects[0].photos[0]);
         var card = document.createElement("div");
         card.className = "album-card reveal";
         card.setAttribute("data-album", i);
         card.innerHTML =
           '<img src="'+cover+'" alt="'+loc.name+' — completed solar projects" loading="lazy">' +
           '<div class="album-label"><h4>'+loc.name+'</h4><span>' +
-          projects.length + (projects.length === 1 ? ' project' : ' projects') +
+          loc.projects.length + (loc.projects.length === 1 ? ' project' : ' projects') +
           ' · ' + totalPhotos + ' photos</span></div>';
         albumGrid.appendChild(card);
       });
@@ -240,16 +292,15 @@
     function renderProjects(loc){
       activeAlbum = loc;
       subAlbumGrid.innerHTML = "";
-      (loc.projects || []).forEach(function(proj, i){
-        var photos = proj.photos || [];
-        var cover = src(photos.length ? photos[0] : "assets/images/dummy.png");
+      loc.projects.forEach(function(proj, i){
+        var cover = src(proj.photos[0]);
         var card = document.createElement("div");
         card.className = "album-card reveal";
         card.setAttribute("data-project", i);
         card.innerHTML =
           '<img src="'+cover+'" alt="'+loc.name+' '+proj.name+'" loading="lazy">' +
           '<div class="album-label"><h4>'+proj.name+'</h4><span>' +
-          photos.length + ' photos</span></div>';
+          proj.photos.length + ' photos</span></div>';
         subAlbumGrid.appendChild(card);
       });
       showView("projects");
@@ -260,7 +311,7 @@
     function renderPhotos(loc, proj){
       activeAlbum = loc;
       loc.activeProjectName = proj.name;
-      activeSrcs = (proj.photos || []).map(src);
+      activeSrcs = proj.photos.map(src);
       photoGrid.innerHTML = "";
       activeSrcs.forEach(function(s, i){
         var item = document.createElement("div");
@@ -329,18 +380,17 @@
 
     showView("albums");
     renderCrumbs();
+    renderAlbums();
+  }
 
-    fetch(GALLERY_JSON_PATH, { cache: "no-store" })
-      .then(function(res){ return res.ok ? res.json() : []; })
-      .then(function(data){
-        ALBUMS = Array.isArray(data) ? data : [];
-        renderAlbums();
-      })
-      .catch(function(){
-        ALBUMS = [];
-        renderAlbums();
-      });
-  })();
+  if (window.fetch){
+    fetch(PROJECTS_JSON_PATH, { cache: "no-store" })
+      .then(function(r){ return r.ok ? r.json() : null; })
+      .then(function(data){ initGallery(Array.isArray(data) && data.length ? data : DEFAULT_ALBUMS); })
+      .catch(function(){ initGallery(DEFAULT_ALBUMS); });
+  } else {
+    initGallery(DEFAULT_ALBUMS);
+  }
 
   /* ============================================================
      CONTACT FORM
@@ -757,5 +807,107 @@
       .then(function(r){ return r.ok ? r.json() : null; })
       .then(function(data){ if (Array.isArray(data)) renderAdditionalDocs(data); })
       .catch(function(){ /* no additional documents yet */ });
+  }
+})();
+
+/* ============================================================
+   AWARDS — populated from assets/data/awards.json, editable
+   via the admin "Awards" page.
+   ============================================================ */
+(function(){
+  "use strict";
+
+  var AWARDS_JSON_PATH = "assets/data/awards.json";
+  var section = document.getElementById("awards");
+  var grid    = document.getElementById("awardsGrid");
+  var empty   = document.getElementById("awardsEmpty");
+  if (!grid) return;
+
+  var lightbox = document.getElementById("awardLightbox");
+  var lbImg    = document.getElementById("awardLbImg");
+  var lbCap    = document.getElementById("awardLbCaption");
+  var lbIndex  = 0;
+  var items    = [];
+
+  function openLightbox(i){
+    lbIndex = i;
+    var a = items[lbIndex];
+    lbImg.src = a.imageUrl;
+    lbImg.alt = a.title || "Award";
+    if (lbCap) lbCap.textContent = a.title + (a.year ? " — " + a.year : "");
+    lightbox.classList.add("is-open");
+  }
+  function closeLightbox(){ lightbox.classList.remove("is-open"); }
+  function stepLightbox(dir){
+    openLightbox((lbIndex + dir + items.length) % items.length);
+  }
+
+  if (lightbox){
+    var closeBtn = document.getElementById("awardLbClose");
+    var prevBtn  = document.getElementById("awardLbPrev");
+    var nextBtn  = document.getElementById("awardLbNext");
+    if (closeBtn) closeBtn.addEventListener("click", closeLightbox);
+    if (prevBtn) prevBtn.addEventListener("click", function(){ stepLightbox(-1); });
+    if (nextBtn) nextBtn.addEventListener("click", function(){ stepLightbox(1); });
+    lightbox.addEventListener("click", function(e){ if (e.target === lightbox) closeLightbox(); });
+    window.addEventListener("keydown", function(e){
+      if (!lightbox.classList.contains("is-open")) return;
+      if (e.key === "Escape") closeLightbox();
+      if (e.key === "ArrowRight") stepLightbox(1);
+      if (e.key === "ArrowLeft") stepLightbox(-1);
+    });
+  }
+
+  function renderAwards(data){
+    items = Array.isArray(data) ? data : [];
+    grid.innerHTML = "";
+
+    if (!items.length){
+      if (empty) empty.hidden = false;
+      if (section) section.hidden = true; // hide the whole section when there's nothing to show yet
+      return;
+    }
+    if (empty) empty.hidden = true;
+    if (section) section.hidden = false;
+
+    items.forEach(function(a, i){
+      var cell = document.createElement("div");
+      cell.className = "cp-item";
+
+      var media = document.createElement("div");
+      media.className = "cp-item-media";
+      media.setAttribute("role", "button");
+      media.setAttribute("tabindex", "0");
+      media.setAttribute("aria-label", "View " + (a.title || "award") + " full-size");
+
+      var img = document.createElement("img");
+      img.src = a.imageUrl;
+      img.loading = "lazy";
+      img.alt = a.title || "Award";
+      media.appendChild(img);
+
+      var openThis = function(){ openLightbox(i); };
+      media.addEventListener("click", openThis);
+      media.addEventListener("keydown", function(e){
+        if (e.key === "Enter" || e.key === " "){ e.preventDefault(); openThis(); }
+      });
+      cell.appendChild(media);
+
+      var label = document.createElement("span");
+      label.className = "cp-item-label";
+      label.textContent = a.title + (a.year ? " · " + a.year : "");
+      cell.appendChild(label);
+
+      grid.appendChild(cell);
+    });
+  }
+
+  if (window.fetch){
+    fetch(AWARDS_JSON_PATH, { cache: "no-store" })
+      .then(function(r){ return r.ok ? r.json() : null; })
+      .then(function(data){ renderAwards(data); })
+      .catch(function(){ renderAwards([]); });
+  } else {
+    renderAwards([]);
   }
 })();
