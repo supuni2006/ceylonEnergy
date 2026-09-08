@@ -1,150 +1,185 @@
 <?php
 /**
- * Ceylon Energy Services — Admin: "why can't you find my .env?"
+ * Ceylon Energy Services — Admin: setup check
  *
- * The panel falling back to http://localhost:5050 means one thing:
- * ce_env('GALLERY_API_BASE') came back empty, so the default in
- * ce_api_base() was used. On a live server that is almost never a code
- * problem — the .env file is one folder off, or File Manager quietly
- * saved it as ".env.txt", or the web user cannot read it.
+ * This site is plain PHP and plain files, so there is very little that
+ * can be misconfigured — but the little there is fails quietly, which
+ * is the worst way to fail. An upload into a folder the web server may
+ * not write to does not raise an error the browser can show; it just
+ * does nothing. GD being switched off does not break anything visibly
+ * either; the site simply starts serving 3MB originals to phones.
  *
- * Guessing which is slow. This page just prints the answer: the exact
- * path PHP looks at, whether that file is there and readable, and every
- * key it managed to parse out of it. Secrets are masked, but it still
- * reveals server paths, so it sits behind the admin login.
+ * So rather than leaving anyone to guess, this page states what the
+ * site needs and whether this server provides it. It reveals server
+ * paths, so it sits behind the admin login.
  */
 require_once __DIR__ . '/inc/auth.php';
-require_once __DIR__ . '/inc/api.php';
+require_once __DIR__ . '/inc/projects.php';
 require_once __DIR__ . '/inc/nav.php';
 
 ce_require_login();
 
-$envPath = SITE_ROOT . '/.env';
-$exists  = file_exists($envPath);
-$readable = $exists && is_readable($envPath);
-
-/** Show enough of a secret to compare it against another copy, no more. */
-function ce_mask($value) {
-    $len = strlen($value);
-    if ($len === 0) return '(empty)';
-    if ($len <= 8) return str_repeat('•', $len) . "  ($len chars)";
-    return substr($value, 0, 4) . str_repeat('•', min($len - 8, 20)) . substr($value, -4) . "  ($len chars)";
+/** Is this path writable — and if it does not exist yet, is its parent? */
+function ce_check_writable($path) {
+    if (file_exists($path)) {
+        return ['ok' => is_writable($path), 'note' => is_writable($path) ? 'Writable' : 'Not writable'];
+    }
+    $parent = dirname($path);
+    if (!is_dir($parent)) {
+        return ['ok' => false, 'note' => 'Missing, and so is the folder it belongs in'];
+    }
+    return is_writable($parent)
+        ? ['ok' => true,  'note' => 'Does not exist yet — will be created on first use']
+        : ['ok' => false, 'note' => 'Does not exist, and its folder is not writable'];
 }
 
-// Parse the file exactly as ce_env() does, so what we report is what it
-// sees — no second, subtly different reader to disagree with.
-$parsed = [];
-if ($readable) {
-    foreach (file($envPath, FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES) as $line) {
-        $line = trim($line);
-        if ($line === '' || $line[0] === '#') continue;
-        $eq = strpos($line, '=');
-        if ($eq === false) continue;
-        $parsed[trim(substr($line, 0, $eq))] = trim(substr($line, $eq + 1));
+$paths = [
+    'Photo folders'        => PROJECTS_IMAGES_DIR,
+    'Gallery list'         => PROJECTS_JSON,
+    'Deleted-photo backup' => BACKUP_DELETED_GALLERY_DIR,
+    'Awards images'        => AWARDS_IMAGES_DIR,
+    'Awards list'          => AWARDS_JSON,
+    'Company profile PDF'  => DOCS_DIR,
+    'Attachments'          => ATTACHMENTS_DIR,
+    'Login details'        => AUTH_FILE,
+];
+
+$extensions = [
+    'gd'       => 'Shrinks uploaded photos to web sizes. Without it the site serves the full-size originals, which is slow on a phone.',
+    'fileinfo' => 'Checks that an uploaded file really is an image. Uploads are refused without it.',
+    'json'     => 'Reads and writes the gallery and awards files.',
+    'mbstring' => 'Handles names with accented characters correctly.',
+];
+
+$uploadMax = ce_ini_bytes(ini_get('upload_max_filesize'));
+$postMax   = ce_ini_bytes(ini_get('post_max_size'));
+
+$locations = ce_load_projects();
+$photoCount = 0;
+$missingFiles = [];
+foreach ($locations as $loc) {
+    foreach ($loc['projects'] as $proj) {
+        foreach ($proj['photos'] as $photo) {
+            $photoCount++;
+            $rel = is_array($photo) ? ($photo['large'] ?? $photo['file'] ?? '') : (string)$photo;
+            if ($rel === '' || preg_match('#^(https?:)?//#i', $rel)) {
+                $missingFiles[] = $rel === '' ? '(no file recorded)' : $rel;
+            } elseif (!file_exists(SITE_ROOT . '/' . ltrim($rel, '/'))) {
+                $missingFiles[] = $rel;
+            }
+        }
     }
 }
 
-// Anything in the site root whose name starts with a dot, plus the
-// near-misses File Manager creates. Seeing ".env.txt" here explains the
-// whole problem in one glance.
-$neighbours = [];
-foreach ((array)@scandir(SITE_ROOT) as $name) {
-    if ($name === '.' || $name === '..') continue;
-    if ($name[0] === '.' || stripos($name, 'env') !== false) $neighbours[] = $name;
+$pathProblems = 0;
+foreach ($paths as $path) {
+    if (!ce_check_writable($path)['ok']) $pathProblems++;
 }
-
-$base  = ce_api_base();
-$probe = ce_api_probe();
+$allGood = $pathProblems === 0 && extension_loaded('gd') && extension_loaded('fileinfo') && !$missingFiles;
 
 ce_admin_head('Setup check');
 ce_admin_header('projects', 'Setup Check');
 ?>
 <main class="admin-main">
 
-  <div class="notice <?= $readable && !empty($parsed['GALLERY_API_BASE']) ? 'notice-ok' : 'notice-error' ?>">
-    <?php if (!$exists): ?>
-      <strong>There is no .env file where the panel looks for it.</strong>
-      Create it at the exact path in the table below — that path is not a
-      suggestion, it is the only place this page reads.
-    <?php elseif (!$readable): ?>
-      <strong>The .env file exists but PHP cannot read it.</strong>
-      Fix its permissions in File Manager: right-click the file &rarr;
-      <em>Change Permissions</em> &rarr; set it to <code>644</code>.
-    <?php elseif (empty($parsed['GALLERY_API_BASE'])): ?>
-      <strong>The .env file is being read, but it has no GALLERY_API_BASE line.</strong>
-      Without it the panel falls back to <code>http://localhost:5050</code>,
-      which is what the red banner is telling you.
+  <div class="notice <?= $allGood ? 'notice-ok' : 'notice-error' ?>">
+    <?php if ($allGood): ?>
+      <strong>Everything this site needs is in place.</strong>
+      Uploads will save, photos will be shrunk for the web, and every photo the
+      gallery lists is really on the server.
     <?php else: ?>
-      <strong>The .env file is being read correctly.</strong>
-      If the gallery banner still complains, the problem is now the
-      backend itself, not this file — see the probe result at the bottom.
+      <strong>Some things need attention — see the tables below.</strong>
+      Anything marked with a cross is fixed in cPanel, not in the code.
     <?php endif; ?>
   </div>
 
   <section class="admin-card">
-    <h2>The file</h2>
+    <h2>Folders and files this site writes to</h2>
+    <p class="muted">
+      A folder the web server cannot write to is the usual reason an upload appears to
+      do nothing at all. Fix it in File Manager: right-click &rarr;
+      <em>Change Permissions</em> &rarr; folders <code>755</code>, files <code>644</code>.
+    </p>
     <table class="admin-table">
-      <tr><th>Path the panel reads</th><td><code><?= htmlspecialchars($envPath) ?></code></td></tr>
-      <tr><th>Exists?</th><td><?= $exists ? 'Yes' : 'No' ?></td></tr>
-      <tr><th>Readable by PHP?</th><td><?= $readable ? 'Yes' : ($exists ? 'No — check permissions (644)' : '—') ?></td></tr>
-      <?php if ($exists): ?>
-        <tr><th>Size</th><td><?= number_format(filesize($envPath)) ?> bytes</td></tr>
-        <tr><th>Last changed</th><td><?= date('Y-m-d H:i:s', filemtime($envPath)) ?></td></tr>
-      <?php endif; ?>
+      <tr><th>What</th><th>Where</th><th>Status</th></tr>
+      <?php foreach ($paths as $label => $path):
+        $check = ce_check_writable($path); ?>
+        <tr>
+          <td><?= htmlspecialchars($label) ?></td>
+          <td><code><?= htmlspecialchars(ce_relative_path($path)) ?></code></td>
+          <td><?= $check['ok'] ? '✓ ' : '✕ ' ?><?= htmlspecialchars($check['note']) ?></td>
+        </tr>
+      <?php endforeach; ?>
+    </table>
+    <p class="fine-print">Full path to the site: <code><?= htmlspecialchars(SITE_ROOT) ?></code></p>
+  </section>
+
+  <section class="admin-card">
+    <h2>PHP</h2>
+    <table class="admin-table">
+      <tr><th>Version</th><td><?= htmlspecialchars(PHP_VERSION) ?><?= version_compare(PHP_VERSION, '7.4', '<') ? ' — too old, ask your host for PHP 8' : '' ?></td></tr>
+      <?php foreach ($extensions as $name => $why): ?>
+        <tr>
+          <td><code><?= htmlspecialchars($name) ?></code></td>
+          <td>
+            <?= extension_loaded($name) ? '✓ Enabled' : '✕ Not enabled' ?>
+            <span class="fine-print"><?= htmlspecialchars($why) ?></span>
+          </td>
+        </tr>
+      <?php endforeach; ?>
+    </table>
+    <p class="fine-print">
+      To switch an extension on: cPanel &rarr; <em>Select PHP Version</em> &rarr;
+      <em>Extensions</em> &rarr; tick it &rarr; the change applies straight away.
+    </p>
+  </section>
+
+  <section class="admin-card">
+    <h2>Upload limits</h2>
+    <p class="muted">
+      These come from <code>.user.ini</code> in the site folder. PHP caches that file for
+      a few minutes, so a change to it is not always visible on the very next page load.
+    </p>
+    <table class="admin-table">
+      <tr><th>Largest single file</th><td><?= htmlspecialchars(ce_human_bytes($uploadMax)) ?> <span class="fine-print">(upload_max_filesize)</span></td></tr>
+      <tr><th>Largest whole form</th><td><?= htmlspecialchars(ce_human_bytes($postMax)) ?> <span class="fine-print">(post_max_size)</span></td></tr>
+      <tr><th>Photo limit in this panel</th><td><?= htmlspecialchars(ce_human_bytes(MAX_IMAGE_BYTES)) ?> per photo</td></tr>
+      <tr><th>Time allowed per request</th><td><?= htmlspecialchars(ini_get('max_execution_time')) ?> seconds</td></tr>
+      <tr><th>Memory allowed</th><td><?= htmlspecialchars(ini_get('memory_limit')) ?> <span class="fine-print">— shrinking a very large photo needs this</span></td></tr>
     </table>
   </section>
 
   <section class="admin-card">
-    <h2>What it parsed</h2>
-    <?php if (!$parsed): ?>
-      <p>Nothing — no <code>NAME=value</code> lines were found.</p>
-    <?php else: ?>
-      <table class="admin-table">
-        <tr><th>Key</th><th>Value</th></tr>
-        <?php foreach ($parsed as $key => $value): ?>
-          <tr>
-            <td><code><?= htmlspecialchars($key) ?></code></td>
-            <td><?php
-              // GALLERY_API_BASE is a public address, and seeing it in
-              // full is the entire point of this page.
-              echo htmlspecialchars($key === 'GALLERY_API_BASE' ? ($value === '' ? '(empty)' : $value) : ce_mask($value));
-            ?></td>
-          </tr>
+    <h2>The gallery</h2>
+    <table class="admin-table">
+      <tr><th>Locations</th><td><?= count($locations) ?></td></tr>
+      <tr><th>Photos listed</th><td><?= $photoCount ?></td></tr>
+      <tr><th>Photos actually on this server</th><td><?= $photoCount - count($missingFiles) ?></td></tr>
+    </table>
+    <?php if ($missingFiles): ?>
+      <p>
+        <?= count($missingFiles) ?> photo<?= count($missingFiles) === 1 ? ' is' : 's are' ?>
+        listed in the gallery but not on this server, so
+        <?= count($missingFiles) === 1 ? 'it' : 'they' ?> will show as broken.
+        <a href="rebuild-gallery.php">Rescan the gallery folders</a> to rebuild the list
+        from the photos that are really there.
+      </p>
+      <ul class="fine-print">
+        <?php foreach (array_slice($missingFiles, 0, 10) as $rel): ?>
+          <li><code><?= htmlspecialchars($rel) ?></code></li>
         <?php endforeach; ?>
-      </table>
-      <p class="fine-print">Only <code>GALLERY_API_BASE</code> and <code>ADMIN_API_TOKEN</code> are ever used by this panel. Anything else here is ignored.</p>
-    <?php endif; ?>
-  </section>
-
-  <section class="admin-card">
-    <h2>Files in the site root that look related</h2>
-    <?php if (!$neighbours): ?>
-      <p>None. If you thought you had created a <code>.env</code> here, it went somewhere else.</p>
-    <?php else: ?>
-      <ul>
-        <?php foreach ($neighbours as $name): ?>
-          <li><code><?= htmlspecialchars($name) ?></code><?php
-            if (strcasecmp($name, '.env') !== 0 && stripos($name, 'env') !== false) {
-                echo ' &larr; not read. The file must be named exactly <code>.env</code>';
-            }
-          ?></li>
-        <?php endforeach; ?>
+        <?php if (count($missingFiles) > 10): ?>
+          <li>…and <?= count($missingFiles) - 10 ?> more.</li>
+        <?php endif; ?>
       </ul>
+    <?php else: ?>
+      <p class="muted">Every listed photo was found on disk.</p>
     <?php endif; ?>
   </section>
 
-  <section class="admin-card">
-    <h2>Reaching the backend</h2>
-    <table class="admin-table">
-      <tr><th>Address being used</th><td><code><?= htmlspecialchars($base) ?></code></td></tr>
-      <tr><th>Health check</th><td><?= $probe['ok'] ? 'Answered correctly' : htmlspecialchars($probe['problem']) ?></td></tr>
-    </table>
-    <?php if ($base === 'http://localhost:5050'): ?>
-      <p class="fine-print">This is the built-in fallback, not something you configured. It means <code>GALLERY_API_BASE</code> was not found above.</p>
-    <?php endif; ?>
-  </section>
-
-  <p><a class="btn btn-ghost" href="projects.php">Back to Projects</a></p>
+  <p>
+    <a class="btn btn-ghost" href="projects.php">Back to Projects</a>
+    <a class="btn btn-ghost" href="rebuild-gallery.php">Rescan gallery folders</a>
+  </p>
 </main>
-</body>
-</html>
+<?php ce_admin_foot(); ?>

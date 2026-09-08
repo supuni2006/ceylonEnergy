@@ -19,47 +19,36 @@ ce_admin_header('projects', 'Project Gallery');
   <?php endif; ?>
 
   <?php
-    // Photos are stored in Cloudinary now, so adding or removing one
-    // needs the backend running. The list below still renders without
-    // it, which would otherwise make this page look perfectly fine
-    // right up until the first upload fails.
-    $api = ce_api_probe();
-    if (ce_env('ADMIN_API_TOKEN') === 'replace_with_a_long_random_string'):
+    // The one thing that actually stops this page working on shared
+    // hosting is a folder PHP is not allowed to write to. It fails
+    // silently at the worst moment — half way through an upload — so
+    // it is worth saying up front rather than after someone has picked
+    // a file and pressed the button.
+    $jsonWritable   = file_exists(PROJECTS_JSON) ? is_writable(PROJECTS_JSON) : is_writable(dirname(PROJECTS_JSON));
+    $imagesWritable = is_dir(PROJECTS_IMAGES_DIR) ? is_writable(PROJECTS_IMAGES_DIR) : is_writable(dirname(PROJECTS_IMAGES_DIR));
+    if (!$jsonWritable || !$imagesWritable):
   ?>
     <div class="notice notice-error">
-      <strong>Your admin token is still the example placeholder.</strong>
-      That value is published in <code>.env.example</code> in this repository,
-      so anyone who can read it could change or delete the gallery. Generate a
-      real one and put it in <code>.env</code> as <code>ADMIN_API_TOKEN</code>:
-      <br><code>node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"</code>
-      <br>Then restart the backend.
+      <strong>Uploads will not work until these are writable.</strong>
+      In cPanel's File Manager, right-click each one &rarr; <em>Change Permissions</em>:
+      folders to <code>755</code>, files to <code>644</code>.
+      <ul>
+        <?php if (!$imagesWritable): ?>
+          <li><code>assets/images/completed-projects</code> — where the photos are saved</li>
+        <?php endif; ?>
+        <?php if (!$jsonWritable): ?>
+          <li><code>assets/data/projects.json</code> — the list the website reads</li>
+        <?php endif; ?>
+      </ul>
+      <a href="check-env.php">Open the setup check</a> for the full list of what this site needs.
     </div>
-  <?php elseif (!$api['ok']): ?>
+  <?php elseif (!function_exists('imagecreatetruecolor')): ?>
     <div class="notice notice-error">
-      <strong>Adding and removing photos will not work yet.</strong>
-      <?= htmlspecialchars($api['problem']) ?>
-      <span class="fine-print">
-        <?php switch (ce_api_base_source()):
-          case 'no-env-file': ?>
-            (There is no <code>.env</code> file at <code><?= htmlspecialchars(SITE_ROOT) ?>/.env</code>, so the panel fell back to its built-in
-            <code>http://localhost:5050</code>. Create that file — the path is exact, not a suggestion.)
-        <?php break; case 'env-missing-key': ?>
-            (Your <code>.env</code> at <code><?= htmlspecialchars(SITE_ROOT) ?>/.env</code> is being read, but it has no
-            <code>GALLERY_API_BASE</code> line, so the panel fell back to its built-in <code>http://localhost:5050</code>. Add the line.)
-        <?php break; default: ?>
-            (Your <code>.env</code> is being read and it says <code>GALLERY_API_BASE=<?= htmlspecialchars(ce_api_base()) ?></code>.
-            That address is the problem, not the file — change it to wherever the backend actually runs.)
-        <?php endswitch; ?>
-        The gallery below still lists everything, because that is read from a local file.
-      </span>
-      <br><a href="check-env.php">Open the setup check</a> for the full picture — the exact path, what parsed, and what answered.
-    </div>
-  <?php elseif (($api['health']['mongo'] ?? '') !== 'connected'): ?>
-    <div class="notice notice-error">
-      <strong>The backend is running but cannot reach MongoDB Atlas.</strong>
-      Check your <code>MONGODB_URI</code> in <code>.env</code>, and that this
-      server's IP is allowed under Atlas &rarr; Network Access.
-      Run <code>npm run check-db</code> for a clearer message.
+      <strong>PHP's image extension (GD) is switched off, so photos cannot be shrunk.</strong>
+      Uploads still work, but the website will hand visitors the full-size originals,
+      which is slow on a phone. In cPanel: <em>Select PHP Version</em> &rarr;
+      <em>Extensions</em> &rarr; tick <code>gd</code>, then use
+      <a href="rebuild-gallery.php">Rescan gallery folders</a> to make the small copies.
     </div>
   <?php endif; ?>
 
@@ -72,17 +61,26 @@ ce_admin_header('projects', 'Project Gallery');
       <label>Location name <input type="text" name="name" maxlength="80" required></label>
       <button class="btn" type="submit">Add Location</button>
     </form>
+    <p class="fine-print">
+      Adding a lot of photos at once? Copy them into the folders with cPanel's File
+      Manager, then <a href="rebuild-gallery.php">rescan the gallery folders</a> to pick
+      them all up in one go.
+    </p>
   </section>
 
   <?php if (!$locations): ?>
-    <p class="muted">No locations yet — add one above to get started.</p>
+    <p class="muted">
+      No locations yet — add one above to get started. If the photos are already on the
+      server, <a href="rebuild-gallery.php">rescan the gallery folders</a> instead and
+      they will be listed automatically.
+    </p>
   <?php endif; ?>
 
   <?php foreach ($locations as $loc): ?>
   <section class="admin-card">
     <div class="admin-card-head">
       <h2><?= htmlspecialchars($loc['name']) ?></h2>
-      <form method="post" action="project-actions.php" onsubmit="return confirm('Remove this whole location and all its projects from the live site? Photo files stay on disk.');">
+      <form method="post" action="project-actions.php" onsubmit="return confirm('Remove this whole location and all its projects from the website? Copies of the photos are kept in storage/backups/deleted-gallery.');">
         <input type="hidden" name="csrf" value="<?= htmlspecialchars($csrf) ?>">
         <input type="hidden" name="action" value="delete_location">
         <input type="hidden" name="location_id" value="<?= htmlspecialchars($loc['id']) ?>">
@@ -106,7 +104,7 @@ ce_admin_header('projects', 'Project Gallery');
       <div class="project-block">
         <div class="admin-card-head">
           <h3><?= htmlspecialchars($proj['name']) ?> <span class="fine-print">(<?= count($proj['photos']) ?> photo<?= count($proj['photos']) === 1 ? '' : 's' ?>)</span></h3>
-          <form method="post" action="project-actions.php" onsubmit="return confirm('Remove this project and its photos from the live site?');">
+          <form method="post" action="project-actions.php" onsubmit="return confirm('Remove this project and its photos from the website? Copies are kept in storage/backups/deleted-gallery.');">
             <input type="hidden" name="csrf" value="<?= htmlspecialchars($csrf) ?>">
             <input type="hidden" name="action" value="delete_project">
             <input type="hidden" name="location_id" value="<?= htmlspecialchars($loc['id']) ?>">
@@ -119,9 +117,9 @@ ce_admin_header('projects', 'Project Gallery');
         <div class="thumb-grid">
           <?php foreach ($proj['photos'] as $photo): ?>
             <div class="thumb-item">
-              <img src="<?= htmlspecialchars(ce_photo_thumb($photo)) ?>" loading="lazy" alt=""
+              <img src="<?= htmlspecialchars(ce_admin_asset_url(ce_photo_thumb($photo))) ?>" loading="lazy" alt=""
                    onerror="this.onerror=null;this.src='../assets/images/dummy.png';">
-              <form method="post" action="project-actions.php" onsubmit="return confirm('Remove this photo? It is deleted from Cloudinary and cannot be undone.');">
+              <form method="post" action="project-actions.php" onsubmit="return confirm('Remove this photo from the website? A copy is kept in storage/backups/deleted-gallery.');">
                 <input type="hidden" name="csrf" value="<?= htmlspecialchars($csrf) ?>">
                 <input type="hidden" name="action" value="delete_photo">
                 <input type="hidden" name="location_id" value="<?= htmlspecialchars($loc['id']) ?>">
@@ -139,7 +137,7 @@ ce_admin_header('projects', 'Project Gallery');
           <input type="hidden" name="action" value="add_photo">
           <input type="hidden" name="location_id" value="<?= htmlspecialchars($loc['id']) ?>">
           <input type="hidden" name="project_id" value="<?= htmlspecialchars($proj['id']) ?>">
-          <label class="file-field">Add photo (JPG or PNG) <input type="file" name="photo" accept="image/jpeg,image/png" required></label>
+          <label class="file-field">Add photo (JPG, PNG or WebP) <input type="file" name="photo" accept="image/jpeg,image/png,image/webp" required></label>
           <button class="btn btn-ghost" type="submit">Upload Photo</button>
         </form>
       </div>

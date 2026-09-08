@@ -1,22 +1,22 @@
-# ---- Secrets -------------------------------------------------------
-# Never commit real credentials. Copy .env.example to .env and put the
-# real MongoDB / Cloudinary values there instead.
-.env
-.env.local
-.env.*.local
-
-# ---- Node ----------------------------------------------------------
-node_modules/
-npm-debug.log*
-
-# ---- Large archives ------------------------------------------------
-# These are the two files GitHub rejected on the last push (174MB and
-# 190MB — the limit is 100MB per file). Zipping the site into the repo
-# is no longer needed now that photos live in Cloudinary.
-/assets.zip
-/admin.zip
-assets/images/completed-projects.zip
-
 # ---- macOS ---------------------------------------------------------
 .DS_Store
 Icon?
+
+# ---- Local PHP -----------------------------------------------------
+# Written by the atomic saves in admin/inc/*.php if a save is
+# interrupted; never wanted in the repository.
+*.tmp
+
+# ---- Deleted-file backups ------------------------------------------
+# Removing a photo or an attachment moves the file here rather than
+# erasing it. That is a safety net on the live server, not history
+# worth carrying in the repository.
+/storage/backups/
+/admin/storage/backups/
+
+# ---- Large archives ------------------------------------------------
+# Zipping the whole site into the repository pushed single files over
+# GitHub's 100MB limit and broke the push.
+/assets.zip
+/admin.zip
+assets/images/completed-projects.zip

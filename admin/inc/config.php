@@ -44,8 +44,28 @@ define('PROFILE_MAX_BACKUPS_KEPT', 5);
 
 // ---- project gallery (locations -> projects -> photos) -----------------
 // Read by assets/js/main.js on the live site ("Our Projects" section).
+//
+// Everything lives on this server: the photo files sit in
+// PROJECTS_IMAGES_DIR under one folder per location and project, and
+// PROJECTS_JSON describes which photo belongs where. There is no
+// database and no image-hosting account to keep working -- copying the
+// folder to another host copies the gallery with it.
 define('PROJECTS_JSON',       SITE_ROOT . '/assets/data/projects.json');
 define('PROJECTS_IMAGES_DIR', SITE_ROOT . '/assets/images/completed-projects');
+
+// Smaller copies of each photo, so a phone loading the gallery does not
+// download a dozen 3MB originals. One "thumbs" folder sits inside each
+// project folder, next to the photos it belongs to.
+define('PROJECTS_THUMB_DIRNAME', 'thumbs');
+define('PROJECTS_THUMB_WIDTH',   400);  // grid card
+define('PROJECTS_THUMB_HEIGHT',  300);  // grid card (cropped to fill)
+define('PROJECTS_MEDIUM_WIDTH',  900);  // the photo view
+define('PROJECTS_LARGE_WIDTH',  1600);  // the full-screen lightbox
+define('PROJECTS_JPEG_QUALITY',  82);
+
+// Deleting a photo moves it here instead of erasing it, so a mistaken
+// click is recoverable from File Manager.
+define('BACKUP_DELETED_GALLERY_DIR', SITE_ROOT . '/storage/backups/deleted-gallery');
 
 // ---- awards --------------------------------------------------------------
 // Read by assets/js/main.js on the live site ("Awards" section).

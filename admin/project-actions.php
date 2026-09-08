@@ -69,7 +69,7 @@ switch ($action) {
             ce_flash_set($result, 'error');
             break;
         }
-        ce_flash_set('Photo uploaded to Cloudinary — it now shows on the live website.');
+        ce_flash_set('Photo uploaded — it now shows on the live website.');
         break;
 
     case 'delete_photo':
@@ -78,7 +78,7 @@ switch ($action) {
         $photo      = (string)($_POST['photo'] ?? '');
         $result = ce_delete_photo($locationId, $projectId, $photo);
         if ($result === true) {
-            ce_flash_set('Photo removed from the gallery and from Cloudinary.');
+            ce_flash_set('Photo removed. A copy is kept in storage/backups/deleted-gallery in case you need it back.');
         } else {
             ce_flash_set($result, 'error');
         }
@@ -89,7 +89,7 @@ switch ($action) {
         $projectId  = (string)($_POST['project_id'] ?? '');
         $result = ce_delete_project($locationId, $projectId);
         if ($result === true) {
-            ce_flash_set('Project removed, along with its photos.');
+            ce_flash_set('Project removed. Copies of its photos are kept in storage/backups/deleted-gallery.');
         } else {
             ce_flash_set($result, 'error');
         }
@@ -99,7 +99,7 @@ switch ($action) {
         $locationId = (string)($_POST['location_id'] ?? '');
         $result = ce_delete_location($locationId);
         if ($result === true) {
-            ce_flash_set('Location removed, along with everything in it.');
+            ce_flash_set('Location removed. Copies of its photos are kept in storage/backups/deleted-gallery.');
         } else {
             ce_flash_set($result, 'error');
         }

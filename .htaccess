@@ -1,12 +1,11 @@
 # Disable directory browsing for security
 Options -Indexes
 
-# Never serve .env or any other dotfile over the web.
+# Never serve a dotfile over the web.
 #
-# The PHP admin panel reads its settings from .env in this folder, so on
-# cPanel that file has to live inside public_html — which means Apache
-# would happily hand the MongoDB and Cloudinary passwords to anyone who
-# opened https://ceylonenergyservices.com/.env . These rules refuse that.
+# On cPanel the whole site sits inside public_html, so without this
+# Apache would happily hand out .user.ini, .htaccess itself, or anything
+# else beginning with a dot to whoever asked for it by name.
 <FilesMatch "^\.">
   <IfModule mod_authz_core.c>
     Require all denied
@@ -17,9 +16,9 @@ Options -Indexes
   </IfModule>
 </FilesMatch>
 
-# Same for the backend's own files, in case the whole project folder
-# (and not just the website part) was uploaded into public_html.
-<FilesMatch "^(package\.json|package-lock\.json|serve\.sh|local-php\.ini)$">
+# Development helpers that get uploaded by accident along with the site.
+# Nothing needs them at runtime, and serve.sh reveals local paths.
+<FilesMatch "^(serve\.sh|local-php\.ini)$">
   <IfModule mod_authz_core.c>
     Require all denied
   </IfModule>
@@ -28,6 +27,28 @@ Options -Indexes
     Deny from all
   </IfModule>
 </FilesMatch>
+
+# Photos, fonts and stylesheets are served from this server now, so it is
+# worth telling browsers to keep them. A returning visitor then loads the
+# gallery from their own cache instead of downloading it again.
+#
+# assets/data/projects.json is deliberately left out: it changes every
+# time a photo is added, and a cached copy would hide that change.
+<IfModule mod_expires.c>
+  ExpiresActive On
+  ExpiresByType image/jpeg "access plus 1 month"
+  ExpiresByType image/png  "access plus 1 month"
+  ExpiresByType image/webp "access plus 1 month"
+  ExpiresByType image/svg+xml "access plus 1 month"
+  ExpiresByType text/css   "access plus 1 week"
+  ExpiresByType application/javascript "access plus 1 week"
+  ExpiresByType font/woff2 "access plus 1 year"
+</IfModule>
+
+# Photos are big; sending the text files compressed costs nothing.
+<IfModule mod_deflate.c>
+  AddOutputFilterByType DEFLATE text/html text/css text/plain application/javascript application/json
+</IfModule>
 
 # php -- BEGIN cPanel-generated handler, do not edit
 # Set the “ea-php84” package as the default “PHP” programming language.

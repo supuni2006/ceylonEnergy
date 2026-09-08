@@ -176,26 +176,17 @@
   /* ============================================================
      PROJECT GALLERY — LOCATIONS -> PROJECTS (SUB-ALBUMS) -> PHOTOS
      ============================================================
-     The gallery is no longer hardcoded here. Photos live in
-     Cloudinary and the tree that describes them lives in MongoDB
-     Atlas, so adding a project through the admin panel is enough —
-     this file never needs editing again.
+     The gallery is not hardcoded here. It is read from one file on
+     this same server, which the admin panel rewrites whenever a photo
+     is added or removed — so adding a project through the panel is
+     enough, and this file never needs editing again.
 
-     Data is loaded in this order, first one that works wins:
-
-       1. GALLERY_API   — live from the backend (always current)
-       2. GALLERY_JSON  — the static file written by "npm run export",
-                          so the gallery survives a backend outage
-
-     Both return the same shape, and every photo arrives with the
-     Cloudinary URLs already built:
+     Every photo in that file arrives with its three sizes already
+     worked out, all of them ordinary paths on this server:
 
        { thumb, medium, large, caption }
      ============================================================ */
 
-  // Point this at your deployed API. Leave it as "" to skip the live
-  // call and read the static file only.
-  var GALLERY_API  = window.CE_GALLERY_API || "";
   var GALLERY_JSON = "assets/data/projects.json";
   var PLACEHOLDER  = "assets/images/dummy.png";
 
@@ -217,16 +208,18 @@
   }
 
   /**
-   * Both sources may hand us slightly different envelopes, so this
-   * flattens either into the one shape the render code below expects.
+   * Flatten the file into the one shape the render code below expects,
+   * accepting either a bare list of locations or one wrapped in an
+   * object, so an older file still renders.
    */
   function normaliseGallery(payload) {
     var list = Array.isArray(payload) ? payload : (payload && payload.locations) || [];
     return list.map(function (loc) {
       var projects = (loc.projects || []).map(function (proj) {
         var photos = (proj.photos || []).map(function (photo) {
-          // A plain string is the old on-disk path format; an object is
-          // the Cloudinary shape. Accept both so nothing breaks mid-migration.
+          // A photo is normally an object with its three sizes. A plain
+          // string is the shape an older gallery file used — accept it
+          // too, so an out-of-date file still shows photos.
           if (typeof photo === "string") {
             return { thumb: photo, medium: photo, large: photo, caption: "" };
           }
@@ -255,33 +248,18 @@
     }).filter(function (loc) { return loc.projects.length > 0; });
   }
 
-  /** Try the API, then the static file. Resolves to [] if both fail. */
+  /**
+   * Read the gallery file. Resolves to [] if it cannot be read, which
+   * shows the "being updated" message rather than a grid of broken
+   * images.
+   */
   function loadGallery() {
     if (!window.fetch) return Promise.resolve([]);
 
-    var fromJson = function () {
-      return fetch(GALLERY_JSON, { cache: "no-store" })
-        .then(function (r) { return r.ok ? r.json() : []; })
-        .catch(function () { return []; });
-    };
-
-    if (!GALLERY_API) return fromJson().then(normaliseGallery);
-
-    return fetch(GALLERY_API.replace(/\/$/, "") + "/api/projects", { cache: "no-store" })
-      .then(function (r) {
-        if (!r.ok) throw new Error("API responded " + r.status);
-        return r.json();
-      })
-      .then(normaliseGallery)
-      .then(function (albums) {
-        // An API that is up but empty still means the static file is
-        // the better answer, so treat "no locations" as a miss.
-        if (!albums.length) throw new Error("API returned nothing");
-        return albums;
-      })
-      .catch(function () {
-        return fromJson().then(normaliseGallery);
-      });
+    return fetch(GALLERY_JSON, { cache: "no-store" })
+      .then(function (r) { return r.ok ? r.json() : []; })
+      .catch(function () { return []; })
+      .then(normaliseGallery);
   }
 
   (function initGallery(){
@@ -295,9 +273,9 @@
     var activeSrcs = [];
     var activeAlbum = null;
 
-    // Photos now arrive with their Cloudinary URLs already built, so
-    // there is nothing to construct here. Kept as a named helper so the
-    // render functions below read the same as before.
+    // Photos arrive with all three paths already worked out, so there
+    // is nothing to construct here. Kept as named helpers so the render
+    // functions below read the same as before.
     function src(photo){ return (photo && photo.medium) || PLACEHOLDER; }
     function coverSrc(photo){ return (photo && photo.thumb) || PLACEHOLDER; }
     function fullSrc(photo){ return (photo && photo.large) || PLACEHOLDER; }

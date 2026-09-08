@@ -1,470 +1,224 @@
 # Putting this site live on cPanel (ceylonenergyservices.com)
 
-This is the answer to two questions at once:
-
-1. **Where does the `.env` file go in cPanel?**
-2. **Why does the admin panel say _"Adding and removing photos will not
-   work yet… nothing is listening at http://localhost:5050"_, and how do
-   I fix it?**
-
-They are related, but they are not the same problem. Read the next
-section before doing anything — it takes two minutes and saves an hour.
+The whole site is PHP and ordinary files. There is no database to create,
+no Node.js app to keep running, and no outside service to sign up for.
+Deploying is: **upload the folder, set two permissions, choose an admin
+password.** That is the entire job.
 
 ---
 
-## First, understand what you are looking at
+## What this site is made of
 
-This project is **two programs**, not one:
-
-| | What it is | Where it runs now |
+| Part | What it is | Notes |
 |---|---|---|
-| **The website + admin panel** | HTML and PHP (`index.html`, `admin/`) | Already on cPanel — working |
-| **The gallery API ("the backend")** | Node.js (`server/`, `package.json`) | **Not running anywhere** — this is the problem |
+| The website | `index.html`, `style.css`, `assets/` | Plain files. Apache serves them as-is. |
+| The admin panel | `admin/` | PHP. Where you add project photos, awards and the company profile. |
+| The gallery | `assets/images/completed-projects/` + `assets/data/projects.json` | The photos, and a list saying which photo belongs to which project. |
 
-The admin panel can *show* the gallery on its own, because it reads the
-list from a file on disk (`assets/data/projects.json`). But **adding or
-deleting a photo** has to go through the Node backend, because that is
-the half that talks to Cloudinary (the photos) and MongoDB Atlas (the
-list).
+The photos live in folders on your own hosting, one folder per location
+and one inside that per project:
 
-The red banner is the panel saying: *"I looked for the backend at
-`http://localhost:5050` and found nothing there."*
+```
+assets/images/completed-projects/
+├── loc-colombo/
+│   ├── proj-project-01/
+│   │   ├── photo-001.png          <- the original you uploaded
+│   │   ├── photo-002.png
+│   │   └── thumbs/                <- small copies, made automatically
+│   │       ├── photo-001-400.jpg      (grid cards)
+│   │       ├── photo-001-900.jpg      (photo view)
+│   │       └── photo-001-1600.jpg     (full screen)
+│   └── proj-wellampitiya/
+└── loc-kaluthara/
+```
 
-`localhost:5050` is the address you use **on your own laptop** while
-developing. On the cPanel server there is no such thing — nothing is
-running on port 5050. So there are two things to fix:
+`assets/data/projects.json` describes that tree — the readable names,
+and which photo goes where. The admin panel rewrites it whenever you add
+or remove a photo, and `assets/js/main.js` reads it when a visitor opens
+the site. That is the entire moving part.
 
-- **Put a `.env` file where the PHP panel can read it** (this section is
-  the "where does .env go" answer), and
-- **Get the Node backend actually running, then point `GALLERY_API_BASE`
-  at its real public address** instead of `localhost:5050`.
-
-Doing only the first one will change the error message but will not make
-uploads work. You need both.
+Originals are never modified. The three smaller copies exist so a visitor
+on a phone downloads a 30KB thumbnail instead of a 3MB original.
 
 ---
 
-## Step 1 — Create `public_html/.env`
+## Step 1 — Upload the files
 
-**The location: `public_html/.env`** — the same folder that contains
-`index.html` and the `admin` folder. Not inside `admin/`, not inside
-`server/`. One level *above* `admin/`.
-
-Why there: the panel builds the path itself in
-`admin/inc/config.php` — `ADMIN_ROOT` is `.../admin`, `SITE_ROOT` is the
-folder above it, and `admin/inc/api.php` reads `SITE_ROOT . '/.env'`.
-So if your admin panel is at
-`ceylonenergyservices.com/admin/projects.php`, the file must be at
-`public_html/.env`.
+Put everything into **`public_html`**, so that `index.html` sits directly
+inside it:
 
 ```
 public_html/
-├── .env          <-- create this file
 ├── .htaccess
+├── .user.ini
 ├── index.html
+├── style.css
 ├── admin/
-│   ├── projects.php
-│   └── inc/
-└── assets/
+├── assets/
+├── contact/
+└── storage/
 ```
 
-### How to create it in File Manager
+The quickest way is to upload a `.zip` of the project into `public_html`
+and use File Manager's **Extract**. Then delete the zip.
 
-1. cPanel → **File Manager**.
-2. Top-right **Settings** → tick **Show Hidden Files (dotfiles)** →
-   **Save**. (Without this, files starting with `.` are invisible and you
-   will think your file vanished.)
-3. Open **public_html**.
-4. Click **+ File**, name it exactly `.env` (leading dot, no `.txt`),
-   **Create New File**.
-5. Right-click `.env` → **Edit** → **Edit** again if it warns about
-   encoding.
-6. Paste the block below, fill in your real values, **Save Changes**.
+If cPanel asks which PHP version to use: **PHP 8.0 or newer**, and make
+sure `gd` is ticked under **Select PHP Version → Extensions**. That is
+the part that shrinks photos for the web. The site still works without
+it — it just serves the full-size originals, which is slow on a phone.
 
-### What to put in `public_html/.env`
+> **Hidden files.** `.htaccess` and `.user.ini` start with a dot, so File
+> Manager hides them by default and you will think they did not upload.
+> Turn them on: **Settings** (top right) → tick **Show Hidden Files
+> (dotfiles)** → **Save**.
 
-The PHP panel reads **only two** settings out of this file
-(`GALLERY_API_BASE` and `ADMIN_API_TOKEN` — nothing else). So keep your
-database and Cloudinary passwords **out** of this copy: this file sits
-inside your public web folder, and the fewer secrets it holds, the less
-there is to lose if it ever gets exposed.
+Both matter:
 
-```dotenv
-# Where the Node backend lives. Fill this in AFTER Step 3 below.
-# It must be the real public address, never localhost.
-GALLERY_API_BASE=https://api.ceylonenergyservices.com
+- `.htaccess` — stops dotfiles being downloaded, switches off directory
+  listing, and tells browsers to cache the photos.
+- `.user.ini` — raises PHP's upload limit from the stock 2MB, which
+  otherwise rejects photos before any of this code runs.
 
-# The shared password between the admin panel and the backend.
-# Must be character-for-character identical to the ADMIN_API_TOKEN the
-# backend uses, or every upload comes back "401 Unauthorized".
-ADMIN_API_TOKEN=paste_your_long_random_token_here
+---
+
+## Step 2 — Make two folders writable
+
+The admin panel saves uploaded photos into your hosting, so PHP needs
+permission to write in two places:
+
+| Path | Permission |
+|---|---|
+| `public_html/assets/images/completed-projects` | `755` |
+| `public_html/assets/data/projects.json` | `644` |
+
+In File Manager: right-click the folder or file → **Change Permissions**
+→ set the number → tick **Recurse into subdirectories** for the folder.
+
+Most cPanel accounts already have these right. If yours does not, an
+upload appears to do nothing at all — no error, no photo — which is why
+it is worth checking now rather than later.
+
+**You do not have to guess.** Once you can log in, open
+`https://ceylonenergyservices.com/admin/check-env.php`. It lists every
+folder the site writes to and says plainly whether this server allows it,
+along with your PHP version, whether `gd` is on, and your upload limits.
+
+---
+
+## Step 3 — Create your admin password
+
+Open:
+
+```
+https://ceylonenergyservices.com/admin/setup.php
 ```
 
-Generate the token **once** and reuse the same value in both places:
+Choose a password. It is saved, hashed, into `admin/data/auth.php` on the
+server. This page only works once — afterwards it sends you to the login
+page instead.
+
+Then log in at `https://ceylonenergyservices.com/admin/login.php`.
+
+> Forgotten it later? There is no reset email. Delete
+> `admin/data/auth.php` in File Manager and `setup.php` will let you
+> choose a new one.
+
+---
+
+## Step 4 — Check the gallery
+
+Open the site and scroll to **Our Projects**. You should see the
+locations, and clicking through should show the photos.
+
+If the photos are missing or broken, the list and the folders have
+drifted apart — usually because photos were copied in by hand. Log in and
+open:
+
+```
+https://ceylonenergyservices.com/admin/rebuild-gallery.php
+```
+
+Press **Rescan folders now**. It reads the folders, rewrites
+`projects.json` to match, and makes any missing small copies. It is safe
+to run whenever, and it never deletes photos.
+
+---
+
+## Adding photos day to day
+
+**A few at a time —** log in, open **Projects**, and use the upload form
+under the project you want. The website updates immediately.
+
+**A lot at once —** the form takes one photo at a time, so for a big
+batch use File Manager instead:
+
+1. Go to `public_html/assets/images/completed-projects/`.
+2. Open the location folder, then the project folder inside it.
+   To start new ones, create folders named like the existing ones:
+   `loc-galle`, and inside it `proj-new-site`. Lower case, words joined
+   by dashes, no spaces.
+3. Upload the JPG or PNG photos into the project folder.
+4. Open **Rescan gallery folders** in the admin panel and press the
+   button.
+
+A folder made this way is named after itself — `loc-galle` becomes
+"Galle". To control the spelling (say "Galle Fort"), add the location on
+the **Projects** page first and it will be kept.
+
+---
+
+## Backups
+
+Removing a photo, project or location in the admin panel does not erase
+anything. The files are moved to:
+
+```
+public_html/storage/backups/deleted-gallery/
+```
+
+named with the date and time they were removed. To undo a mistake, copy
+the file back into its project folder and run the rescan. Clear that
+folder out yourself when you are sure you no longer need what is in it —
+nothing empties it automatically.
+
+---
+
+## When something is wrong
+
+| What you see | What it means | Fix |
+|---|---|---|
+| Upload seems to do nothing | The photo folder is not writable | Step 2. `check-env.php` names the exact folder |
+| "Could not save the photo into…" | Same thing, said out loud | Step 2 |
+| Photos show but look slow and huge | `gd` is switched off, so no small copies were made | cPanel → Select PHP Version → Extensions → tick `gd`, then run the rescan |
+| Broken images in the gallery | The list names photos that are not on the server | Run **Rescan gallery folders** |
+| Gallery says "being updated" | `assets/data/projects.json` is missing or unreadable | Check it is there and set to `644`, then run the rescan |
+| "That photo is larger than…" | Bigger than the 10MB limit in the panel | Shrink the photo, or raise `MAX_IMAGE_BYTES` in `admin/inc/config.php` |
+| Big photos fail, small ones work | PHP's own upload limit | `.user.ini` raises it — make sure that file uploaded. PHP caches it for a few minutes, so wait before retesting |
+| The admin panel is a wall of unstyled text | `admin/admin.css` did not upload | Re-upload the `admin` folder |
+| `https://…/.user.ini` downloads instead of refusing | `.htaccess` did not upload | Step 1 — turn on hidden files and check |
+
+---
+
+## Moving the site somewhere else
+
+Copy `public_html` across. That is all of it: the photos, the list, the
+awards, the company profile and the login. There is no database export
+and no service to reconnect, because there was never anything outside
+this folder.
+
+---
+
+## Running it on your own computer first
+
+You need PHP installed; nothing else.
 
 ```bash
-node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"
+./serve.sh
 ```
 
-No Node on your laptop? Any 40+ character random string of letters and
-numbers works. Do **not** leave it as
-`replace_with_a_long_random_string` — the backend refuses to start with
-that value, on purpose, because it is published in `.env.example`.
-
----
-
-## Step 2 — Check the file is not readable from the internet
-
-This matters. By default Apache is perfectly happy to serve a file called
-`.env` to anybody who asks for it.
-
-Open this in your browser:
-
-```
-https://ceylonenergyservices.com/.env
-```
-
-- **403 Forbidden / "Access denied"** — correct, move on.
-- **The file's contents appear, or it downloads** — your `.htaccess` is
-  not in place. Make sure `public_html/.htaccess` contains the
-  `<FilesMatch "^\.">` block from this repository (it is in the
-  `.htaccess` file at the project root — upload that file too), then
-  test again. **Do not skip this**, and if the contents were visible,
-  change the token afterwards.
-
----
-
-## Step 3 — Get the Node backend running
-
-Check cPanel first: **Software → Setup Node.js App**.
-
-- **The icon is there** → follow **Option A**.
-- **The icon is missing** → your hosting plan has no Node.js. Follow
-  **Option B**. Nothing you do in File Manager can create Node support.
-
-### Option A — cPanel's "Setup Node.js App"
-
-This is the **Create Application** form. Do the checks in order — the
-first one decides whether any of the rest is worth doing.
-
-**A1. Open the "Node.js version" dropdown before anything else.**
-
-The form defaults to **10.24.1**, and this project *cannot* run on it.
-It needs **Node 18 or newer**, for three separate reasons:
-
-- Express 5 (the web framework) requires Node 18+.
-- `server/server.js` uses `fetch()`, which only exists as a built-in
-  from Node 18 on. On Node 10 it is an instant crash at startup.
-- Mongoose 8 (the MongoDB driver) requires Node 16+.
-
-So: open that dropdown and pick the **highest version offered** (20 or
-22 if they are there, otherwise 18).
-
-**If the dropdown's highest option is below 18, stop here.** Nothing you
-type into the rest of this form will make it work. Either ask your host
-to enable a newer Node.js, or use **Option B** below.
-
-**A2. Create the subdomain — in a second browser tab.**
-
-The "Application URL" dropdown currently only offers
-`ceylonenergyservices.com`, because `api.ceylonenergyservices.com` does
-not exist yet. Leave this form open, and in a new tab go to
-cPanel → **Domains** → **Create A Domain** → enter
-`api.ceylonenergyservices.com` → **Submit**.
-
-Then come back to this tab and **reload the page** so the new subdomain
-appears in the dropdown. (Reloading means re-picking the Node version
-from A1 — that is fine, nothing is lost.)
-
-> Prefer not to make a subdomain? You can instead leave the dropdown on
-> `ceylonenergyservices.com` and type `nodeapi` into the box next to it,
-> giving `https://ceylonenergyservices.com/nodeapi`. That works too —
-> the server now trims the folder prefix off incoming requests by
-> itself. Its one advantage is that your existing SSL certificate
-> already covers it, so you skip step A8. Everything else below is the
-> same, with `https://ceylonenergyservices.com/nodeapi` wherever this
-> guide says `https://api.ceylonenergyservices.com`.
-
-**A3. Fill in the form.**
-
-| Field | What to put | Why |
-|---|---|---|
-| Node.js version | The highest offered, **never below 18** | See A1 |
-| Application mode | **Production** | Sets `NODE_ENV=production`, which hides internal error details from strangers. The form defaults to Development |
-| Application root | `ceylon-api` | A folder in your home directory, **not** inside `public_html`. cPanel creates it for you. Keeping the backend out of the web folder means nobody can read its source over the internet |
-| Application URL | `api.ceylonenergyservices.com` | The subdomain from A2 |
-| Application startup file | `server/server.js` | The file `npm start` runs. Note the folder — it is not `app.js` |
-
-**A3b. Never set the Application URL to the bare domain.**
-
-The URL must keep a folder on the end — `ceylonenergyservices.com/ceylon-api`,
-not `ceylonenergyservices.com`. Dropping the folder tells cPanel to write
-its Passenger block into `public_html/.htaccess` with
-`PassengerBaseURI "/"`, which hands **the entire website** to Node: the
-homepage, the admin panel, every PHP page. They stop being served by PHP
-and start being handed to an app that does not know what to do with
-them, so the whole site answers `503 Service Unavailable` — including
-the admin panel you are trying to reach.
-
-If that has already happened, see "Recovering from a site-wide 503"
-below. Nothing is lost; it is only routing.
-
-**A4. Add the environment variables — this is the "add env in cPanel" part.**
-
-Use the **Environment variables** table at the bottom of this same form.
-Click **ADD VARIABLE**, type the name and value, click **DONE**, and
-repeat. cPanel injects these straight into the app, so the backend needs
-no `.env` file of its own.
-
-| Name | Value |
-|---|---|
-| `MONGODB_URI` | Your full Atlas connection string |
-| `MONGODB_DB_NAME` | `ceylonenergy` |
-| `CLOUDINARY_CLOUD_NAME` | From Cloudinary → Settings → API Keys |
-| `CLOUDINARY_API_KEY` | Same page |
-| `CLOUDINARY_API_SECRET` | Same page |
-| `CLOUDINARY_FOLDER` | `ceylon-energy/completed-projects` |
-| `ADMIN_API_TOKEN` | Your long random token — **identical** to the one in `public_html/.env` |
-| `ALLOWED_ORIGINS` | `https://ceylonenergyservices.com,https://www.ceylonenergyservices.com` — list **both** spellings; a browser treats `www.` as a different site |
-
-Three things not to do:
-
-- **Do not add `GALLERY_API_BASE` here.** This is the most natural
-  mistake on this page and it costs an evening. That setting tells the
-  *PHP admin panel* where to find the backend — but PHP never sees
-  cPanel's environment variables, which belong to the Node process
-  alone. Setting it here changes nothing at all, and the panel goes on
-  reporting `localhost:5050` while the value sits in front of you
-  looking correct. It goes in `public_html/.env`, and only there.
-- **Do not add `PORT`.** Passenger assigns the port itself and ignores
-  yours; setting it only confuses you later.
-- **Do not add `NODE_ENV`.** The "Application mode" dropdown already
-  sets it.
-
-And one thing to watch: if your MongoDB password contains any of
-`@ : / ? # [ ] %`, it must be percent-encoded inside the URI (`p@ss`
-becomes `p%40ss`), or the driver reads the string wrong and the
-connection fails with a confusing authentication error.
-
-Now click **CREATE** (top right).
-
-**A5. Upload the backend files.**
-
-cPanel has just created `/home/YOURUSER/ceylon-api`. Open **File
-Manager**, go into it, and upload:
-
-```
-ceylon-api/
-├── package.json
-├── package-lock.json
-└── server/          (the whole folder, with its config/ middleware/ models/ routes/ subfolders)
-```
-
-Do **not** upload `node_modules` — it is large and the next step builds
-it properly for this server's Node version. If cPanel put a sample
-`app.js` in there, ignore it; your startup file points at
-`server/server.js`.
-
-**A6. Install the dependencies.**
-
-Back on Setup Node.js App, open your app and click **Run NPM Install**.
-It reads `package.json`, so it will fail if step A5 has not finished.
-Wait for it to report success.
-
-**A7. Let the server reach MongoDB Atlas.**
-
-Atlas → **Network Access** → **Add IP Address**. Add your cPanel
-server's IP, shown in cPanel's right-hand sidebar as "Shared IP
-Address".
-
-Do not skip this. Atlas rejects unknown addresses by default, and the
-backend calls `connectDB()` *before* it starts listening — so a blocked
-IP means the app exits at startup and every page on the subdomain shows
-a cPanel error instead of your API.
-
-**A8. Wait for the subdomain's SSL certificate.**
-
-A brand-new subdomain has no HTTPS certificate for a few minutes, and
-until it does, the PHP panel's request will fail with an SSL error
-rather than a helpful message. Go to cPanel → **SSL/TLS Status**, tick
-`api.ceylonenergyservices.com`, and click **Run AutoSSL**. Wait until it
-shows a valid certificate. (Skip this if you used the `/nodeapi` folder
-option in A2 — your main certificate already covers it.)
-
-**A-help. "Directory should not contain spaces" and CREATE will not go through.**
-
-This one wastes afternoons, because the field it names usually looks
-perfectly clean. Two things to know first: the red toast **stays on
-screen until you click its ✕**, so what you are looking at may be the
-previous attempt rather than a new one — dismiss it before judging. And
-a pasted value is the usual culprit: copying a name out of a table or a
-chat message drags an invisible trailing space along with it.
-
-Find it by halving the form instead of guessing:
-
-1. Hard-reload the page (**Cmd/Ctrl + Shift + R**) to clear any stale
-   form state, and dismiss the toast.
-2. Fill in **only the five fields at the top** — version, mode, root,
-   URL, startup file — and **delete every environment-variable row**.
-   Click **CREATE**.
-
-That splits the problem in half:
-
-- **It creates.** The bad value was in an environment variable, not a
-  path. Add them back one at a time from the app's own page. The usual
-  offender is `ALLOWED_ORIGINS`, because a comma-separated list is
-  natural to type as `a.com, b.com` — that space after the comma has to
-  go: `https://ceylonenergyservices.com,https://www.ceylonenergyservices.com`
-- **It still fails.** The problem is one of the five fields. Clear each
-  one with **Cmd/Ctrl + A** then **Delete**, and retype it by hand —
-  never paste. If it still refuses, create the folder in File Manager
-  first, then type the first few letters into Application root and
-  **click the folder from the autocomplete dropdown** rather than
-  finishing the word. A value chosen from that list cannot contain
-  stray whitespace.
-
-If cPanel keeps refusing after all of that, do not keep fighting it —
-Option B below gets the same backend running in about five minutes.
-
-**A-help2. Recovering from a site-wide 503.**
-
-Every page answering `503 Service Unavailable` — the homepage and
-`/admin/` included — means Passenger has been put in charge of the whole
-document root and the app behind it will not start. Two things to undo,
-in this order:
-
-1. **Put the app back on its own path.** Setup Node.js App → open the
-   app → set **Application URL** back to
-   `ceylonenergyservices.com/ceylon-api` → **SAVE**. This rewrites the
-   `.htaccess` files correctly and usually restores the site on its own.
-2. **If the site is still 503, clean `public_html/.htaccess` by hand.**
-   Open it in File Manager and look for a block like:
-
-   ```apache
-   # DO NOT REMOVE. CLOUDLINUX PASSENGER CONFIGURATION BEGIN
-   PassengerAppRoot "/home/ceylonen/ceylon-api"
-   PassengerBaseURI "/"
-   ...
-   # DO NOT REMOVE. CLOUDLINUX PASSENGER CONFIGURATION END
-   ```
-
-   Delete that whole block, including both comment lines, and save.
-   Despite what it says, removing it is exactly right here — it does not
-   belong in the site root. Leave the identical block inside
-   `public_html/ceylon-api/.htaccess` alone; that one is correct.
-
-The site should answer normally again immediately. Only then go back to
-why the Node app itself would not boot — the **stderr log** on its page
-names the reason, and a bad `MONGODB_URI` is the usual one, because the
-app connects to Atlas *before* it starts listening and exits if that
-fails.
-
-**A9. Start it and check.**
-
-Click **Restart** on the app, then open this in your browser:
-
-```
-https://api.ceylonenergyservices.com/api/health
-```
-
-You are looking for:
-
-```json
-{"ok":true,"service":"ceylon-energy-api","mongo":"connected","cloudinary":"configured"}
-```
-
-If you get that, the hard part is done — go to Step 4.
-
-If not, read what you got:
-
-| What you see | What it means |
-|---|---|
-| `"mongo":"disconnected"` | The Atlas IP allowlist (A7), or a wrong/badly-encoded `MONGODB_URI` |
-| `"cloudinary":"missing"` | A typo in one of the `CLOUDINARY_*` variable names |
-| A cPanel error page, not JSON | The app did not start. Open the **stderr log** link on the app's page. A missing variable is printed there as a plain list; `SyntaxError` or `fetch is not defined` means the Node version is below 18 (back to A1) |
-| `404` with `{"ok":false,"error":"No route for GET /..."}` | The app is running fine, you just asked for the wrong path. Check you typed `/api/health` |
-
-
-### Option B — no Node.js in your cPanel (or cPanel will not cooperate)
-
-Host the backend somewhere that runs Node for free. Render is the usual
-choice: **New → Web Service** → connect this GitHub repository →
-Runtime **Node**, Build command `npm install`, Start command
-`npm start`. Put every variable from A4 into its **Environment** tab —
-`ALLOWED_ORIGINS` and `ADMIN_API_TOKEN` included, `PORT` excluded, since
-Render sets that itself and `server/config/env.js` already reads it.
-
-Allow Render's outbound IPs in Atlas → Network Access, the same way as
-step A7.
-
-You get a URL like `https://ceylon-energy-api.onrender.com`. That is
-what goes into `GALLERY_API_BASE` — nothing else in this guide changes,
-because the PHP panel does not care where the backend lives, only that
-it can reach it over HTTPS.
-
-> **The one catch with a free tier:** it sleeps after about 15 minutes
-> of no traffic and takes up to a minute to wake. The admin panel's
-> health check gives up after 5 seconds, so the first visit after a
-> quiet spell shows the red banner even though nothing is wrong —
-> wait a moment and reload and it clears. Uploads themselves wait far
-> longer (2 minutes) and go through fine. A paid always-on instance, or
-> getting cPanel's own Node.js working, avoids the annoyance entirely.
-
----
-
-## Step 4 — Point the panel at the real backend
-
-Go back to `public_html/.env` and set `GALLERY_API_BASE` to the address
-that returned JSON in step A9 — **without** the `/api` part and
-**without** a trailing slash:
-
-```dotenv
-GALLERY_API_BASE=https://api.ceylonenergyservices.com
-```
-
-The panel adds `/api/health`, `/api/projects` and so on by itself. If you
-write `https://api.ceylonenergyservices.com/api`, it ends up asking for
-`/api/api/health` and you get a 404.
-
-Save, then reload `https://ceylonenergyservices.com/admin/projects.php`.
-The red banner should be gone. Add a test location to confirm writes work
-end to end, then delete it.
-
----
-
-## If it still does not work
-
-The panel tries hard to tell you what is wrong. Match its wording here:
-
-| The banner says | What it means | Fix |
-|---|---|---|
-| `Nothing is listening at http://localhost:5050` | `.env` was not found, or `GALLERY_API_BASE` is still the default | The file must be `public_html/.env` exactly, with hidden files shown so you can confirm it is there. Check for `.env.txt` — File Manager adds that silently on some setups |
-| `Nothing is listening at https://api...` | The file is being read (good) but the backend is down | Restart the app in Setup Node.js App and re-check `/api/health` |
-| `ADMIN_API_TOKEN is not set in .env` | The panel found the file but not that key | Check for a typo in the name, and that there are no spaces around the `=` |
-| `401` / `Unauthorized` on upload | The two `ADMIN_API_TOKEN` values do not match | Copy-paste one string into `public_html/.env` **and** the cPanel environment-variables table. Watch for a trailing space |
-| The subdomain shows a cPanel error, not JSON | The Node app crashed at startup | Open the **stderr log** on the Setup Node.js App page. `fetch is not defined` or a `SyntaxError` means the Node version is below 18 — see step A1 |
-| `SSL certificate problem` in the banner | The subdomain has no certificate yet | cPanel → SSL/TLS Status → Run AutoSSL (step A8) |
-| `404` from the API | `GALLERY_API_BASE` has `/api` or a trailing slash on the end | Remove it — see Step 4 |
-| Upload fails on big photos | PHP's upload limit | `.user.ini` in `public_html` raises it. Give it a few minutes — PHP caches that file |
-| Gallery lists photos but nothing can be added | Normal when the backend is down | That list comes from `assets/data/projects.json` on disk, not from the API |
-
----
-
-## Recap: which file goes where
-
-| File | Location | Holds | Needed by |
-|---|---|---|---|
-| `.env` | `public_html/.env` | `GALLERY_API_BASE`, `ADMIN_API_TOKEN` | The PHP admin panel |
-| *(no file)* | The **Environment variables** table on the Setup Node.js App page | MongoDB, Cloudinary, `ADMIN_API_TOKEN`, `ALLOWED_ORIGINS` | The Node backend |
-| `.htaccess` | `public_html/.htaccess` | The rules that stop `.env` being downloaded | Apache |
-
-`public_html/.env` is not in git — `.gitignore` blocks it, on purpose.
-It is created by hand on the server, once. Together with the cPanel
-environment-variables table, those are the only two places your real
-passwords exist.
-
-If you would rather keep the backend's settings in a file than in the
-cPanel table, put a second `.env` at `ceylon-api/.env` with the same
-names and values — the backend loads `dotenv`, so it reads that file
-too. Use one or the other, not both, or you will spend an afternoon
-wondering which value is winning.
+That starts PHP's built-in server on <http://localhost:8000> with the
+same upload limits as production (`local-php.ini`), so a photo that
+uploads locally will upload on the server too.
+
+`serve.sh` and `local-php.ini` are for local use only. They do nothing on
+cPanel, and `.htaccess` blocks them from being served.
