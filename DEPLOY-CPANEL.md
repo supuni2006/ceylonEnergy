@@ -195,6 +195,20 @@ from A1 — that is fine, nothing is lost.)
 | Application URL | `api.ceylonenergyservices.com` | The subdomain from A2 |
 | Application startup file | `server/server.js` | The file `npm start` runs. Note the folder — it is not `app.js` |
 
+**A3b. Never set the Application URL to the bare domain.**
+
+The URL must keep a folder on the end — `ceylonenergyservices.com/ceylon-api`,
+not `ceylonenergyservices.com`. Dropping the folder tells cPanel to write
+its Passenger block into `public_html/.htaccess` with
+`PassengerBaseURI "/"`, which hands **the entire website** to Node: the
+homepage, the admin panel, every PHP page. They stop being served by PHP
+and start being handed to an app that does not know what to do with
+them, so the whole site answers `503 Service Unavailable` — including
+the admin panel you are trying to reach.
+
+If that has already happened, see "Recovering from a site-wide 503"
+below. Nothing is lost; it is only routing.
+
 **A4. Add the environment variables — this is the "add env in cPanel" part.**
 
 Use the **Environment variables** table at the bottom of this same form.
@@ -311,6 +325,39 @@ That splits the problem in half:
 
 If cPanel keeps refusing after all of that, do not keep fighting it —
 Option B below gets the same backend running in about five minutes.
+
+**A-help2. Recovering from a site-wide 503.**
+
+Every page answering `503 Service Unavailable` — the homepage and
+`/admin/` included — means Passenger has been put in charge of the whole
+document root and the app behind it will not start. Two things to undo,
+in this order:
+
+1. **Put the app back on its own path.** Setup Node.js App → open the
+   app → set **Application URL** back to
+   `ceylonenergyservices.com/ceylon-api` → **SAVE**. This rewrites the
+   `.htaccess` files correctly and usually restores the site on its own.
+2. **If the site is still 503, clean `public_html/.htaccess` by hand.**
+   Open it in File Manager and look for a block like:
+
+   ```apache
+   # DO NOT REMOVE. CLOUDLINUX PASSENGER CONFIGURATION BEGIN
+   PassengerAppRoot "/home/ceylonen/ceylon-api"
+   PassengerBaseURI "/"
+   ...
+   # DO NOT REMOVE. CLOUDLINUX PASSENGER CONFIGURATION END
+   ```
+
+   Delete that whole block, including both comment lines, and save.
+   Despite what it says, removing it is exactly right here — it does not
+   belong in the site root. Leave the identical block inside
+   `public_html/ceylon-api/.htaccess` alone; that one is correct.
+
+The site should answer normally again immediately. Only then go back to
+why the Node app itself would not boot — the **stderr log** on its page
+names the reason, and a bad `MONGODB_URI` is the usual one, because the
+app connects to Atlas *before* it starts listening and exits if that
+fails.
 
 **A9. Start it and check.**
 

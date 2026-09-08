@@ -124,9 +124,37 @@ function ce_api_explain_failure($status, $serverHeader, $data) {
         return $data['error'];
     }
 
-    // Answered, but not in our API's language — some other service owns
-    // this address.
-    $who = $serverHeader !== '' ? ' It identifies itself as "' . $serverHeader . '".' : '';
+    // Answered, but not in our API's language — so who did answer, and
+    // is this a laptop or a real host? The advice differs completely,
+    // and "check the port with lsof" is useless to someone on shared
+    // hosting who has no shell.
+    $who  = $serverHeader !== '' ? ' It identifies itself as "' . $serverHeader . '".' : '';
+    $host = parse_url($base, PHP_URL_HOST);
+    $path = parse_url($base, PHP_URL_PATH);
+    $isLocal = in_array($host, ['localhost', '127.0.0.1', '::1'], true);
+
+    // A 404 from a web server on a public host is the signature of a
+    // request that never reached the app at all: the server looked for a
+    // file of that name, found none, and answered by itself. Our own
+    // 404s are JSON with an "error" key, and would have been caught
+    // above — so this one is not ours.
+    if ($status === 404 && !$isLocal) {
+        return 'The web server at ' . $host . ' answered 404 for ' . $base . '/api/health, '
+             . 'so the gallery API was never reached.' . $who
+             . ' Our API answers in JSON even when it says 404, so this reply came from the '
+             . 'host, not from us. Nothing is running at "' . ($path !== '' ? $path : '/') . '": '
+             . 'either the Node app is stopped, or the host is no longer routing that path to '
+             . 'it. Start the app, then open ' . $base . '/api/health yourself — you should get '
+             . 'JSON, not a web-server error page.';
+    }
+
+    if (!$isLocal) {
+        return 'Something at ' . $host . ' answered HTTP ' . $status . ' for ' . $base
+             . ', but it is not the gallery API.' . $who
+             . ' Either GALLERY_API_BASE points at the wrong address, or the backend is not '
+             . 'running there. Open ' . $base . '/api/health in a browser to see for yourself.';
+    }
+
     return 'Something answered at ' . $base . ' with HTTP ' . $status
          . ', but it is not the gallery API.' . $who
          . ' Either another program is using that port, or GALLERY_API_BASE in .env points '
