@@ -211,10 +211,17 @@ no `.env` file of its own.
 | `CLOUDINARY_API_SECRET` | Same page |
 | `CLOUDINARY_FOLDER` | `ceylon-energy/completed-projects` |
 | `ADMIN_API_TOKEN` | Your long random token — **identical** to the one in `public_html/.env` |
-| `ALLOWED_ORIGINS` | `https://ceylonenergyservices.com,https://www.ceylonenergyservices.com` |
+| `ALLOWED_ORIGINS` | `https://ceylonenergyservices.com,https://www.ceylonenergyservices.com` — list **both** spellings; a browser treats `www.` as a different site |
 
-Two things not to do:
+Three things not to do:
 
+- **Do not add `GALLERY_API_BASE` here.** This is the most natural
+  mistake on this page and it costs an evening. That setting tells the
+  *PHP admin panel* where to find the backend — but PHP never sees
+  cPanel's environment variables, which belong to the Node process
+  alone. Setting it here changes nothing at all, and the panel goes on
+  reporting `localhost:5050` while the value sits in front of you
+  looking correct. It goes in `public_html/.env`, and only there.
 - **Do not add `PORT`.** Passenger assigns the port itself and ignores
   yours; setting it only confuses you later.
 - **Do not add `NODE_ENV`.** The "Application mode" dropdown already
