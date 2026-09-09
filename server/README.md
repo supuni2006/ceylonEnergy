@@ -132,6 +132,53 @@ curl http://localhost:5050/api/health
 curl http://localhost:5050/api/projects
 ```
 
+### If `npm start` says `Missing script: "start"`
+
+```
+npm error Missing script: "start"
+```
+
+npm found a `package.json` in the folder you are standing in, but that
+file has no `start` script in it. The one in this repository does, so
+the file npm read is not the one that is committed here. Two things
+cause that:
+
+**You are in the wrong folder.** `npm start` only reads the
+`package.json` next to it. Check where you are and what npm can see:
+
+```bash
+pwd                 # should end in /ceylonEnergy
+npm run             # lists every script npm can find
+```
+
+`npm run` should list `start`, `dev`, `migrate`, `export` and
+`check-db`. If it lists only `test`, or nothing, read on.
+
+**Your copy is out of date, or a stray `package.json` was created.**
+Running `npm init` (or `npm install <something>` in a folder that had no
+`package.json`) writes a fresh one containing only a `test` script, and
+that file then hides the real one. Compare yours against the repository:
+
+```bash
+git status           # is package.json modified or untracked?
+git pull origin main # get the committed version
+```
+
+If `git status` shows `package.json` as **modified**, the stray file
+overwrote the real one — throw your copy away and take the committed
+one back:
+
+```bash
+git checkout -- package.json
+```
+
+Then install and start as normal:
+
+```bash
+npm install
+npm start
+```
+
 ### Why port 5050 and not 5000
 
 On macOS, the built-in **AirPlay Receiver** holds port 5000 and answers
@@ -305,6 +352,7 @@ local files.
 
 | What you see | What it usually means |
 |---|---|
+| `npm error Missing script: "start"` | npm is reading a different `package.json` than the one in this repository — wrong folder, or a stray file from `npm init`. Run `npm run` to see what npm can find, then `git status` and `git checkout -- package.json` |
 | `Missing required environment variables` | `.env` does not exist or a line is blank — copy it from `.env.example` |
 | `ADMIN_API_TOKEN is still the example placeholder` | Generate a real token (see step 2) — the placeholder is public, so the server refuses to start with it |
 | MongoDB fails, mentions IP / allowlist | Add your server's IP under Atlas → Network Access |
