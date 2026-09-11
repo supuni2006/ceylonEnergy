@@ -21,17 +21,15 @@ const app = express();
  * Strip the host's mount prefix off incoming URLs.
  *
  * cPanel/Passenger can publish this app under a folder of an existing
- * site — e.g. ceylonenergyservices.com/nodeapi — and when it does, it
+ * site — e.g. ceylonenergyservices.com/ceylon-api — and when it does, it
  * hands the request over with that prefix still on the front. Express
- * then looks for "/nodeapi/api/health", finds no route matching, and
+ * then looks for "/ceylon-api/api/health", finds no route matching, and
  * every single call 404s even though the app booted perfectly. That
  * failure is baffling because the logs show a healthy server.
  *
  * Trimming the prefix here means the routes below stay written as plain
  * "/api/..." paths and behave identically whether we are mounted at the
- * root of a subdomain or inside a folder. Passenger sets
- * PASSENGER_BASE_URI only in the folder case, so this is a no-op
- * everywhere else, including local development.
+ * root of a subdomain or inside a folder.
  */
 function withoutBaseUri(url, base) {
   if (!base) return url;
@@ -44,14 +42,61 @@ function withoutBaseUri(url, base) {
   return url;
 }
 
-const baseUri = (process.env.PASSENGER_BASE_URI || '').replace(/\/+$/, '');
+/**
+ * The same job, but without being told the prefix.
+ *
+ * Passenger is *supposed* to set PASSENGER_BASE_URI when it publishes an
+ * app in a folder, and older builds — plus CloudLinux's Node.js Selector
+ * in some versions — simply do not. Relying on that variable alone means
+ * the app 404s every request on exactly the hosting setup it was
+ * deployed to, with a log full of healthy startup lines and a 404 body
+ * that names a path nobody typed.
+ *
+ * Every route this server has begins with "/api/", so anything sitting
+ * in front of that is a prefix the host added, whatever it is called.
+ * Cutting from the first "/api/" is therefore safe: a request that is
+ * already correct starts there and is left untouched.
+ */
+function stripUnknownPrefix(url) {
+  const q = url.indexOf('?');
+  const path = q === -1 ? url : url.slice(0, q);
+  const query = q === -1 ? '' : url.slice(q);
+
+  if (path === '/api' || path.startsWith('/api/')) return url; // already ours
+
+  const at = path.indexOf('/api/');
+  if (at > 0) return path.slice(at) + query;
+  if (path.endsWith('/api')) return '/api' + query;
+  return url;
+}
+
+const baseUri = (process.env.PASSENGER_BASE_URI || process.env.API_BASE_PATH || '')
+  .replace(/\/+$/, '');
 if (baseUri) {
   console.log(`  Mounted under ${baseUri} — trimming that prefix from requests.`);
-  app.use((req, res, next) => {
-    req.url = withoutBaseUri(req.url, baseUri);
-    next();
-  });
 }
+
+let warnedAboutPrefix = false;
+app.use((req, res, next) => {
+  const original = req.url;
+
+  if (baseUri) req.url = withoutBaseUri(req.url, baseUri);
+  if (req.url === original) req.url = stripUnknownPrefix(req.url);
+
+  // Said once, not per request, and only when the host actually added a
+  // prefix we were not told about — so the log names the real mount path
+  // instead of leaving someone to work it out from 404 bodies.
+  if (req.url !== original && !baseUri && !warnedAboutPrefix) {
+    warnedAboutPrefix = true;
+    const prefix = original.slice(0, original.length - req.url.length);
+    console.log(
+      `  Requests arrive with the prefix "${prefix}" on the front — trimming it. ` +
+        `Set API_BASE_PATH=${prefix} to make that explicit.`
+    );
+  }
+
+  next();
+});
 
 app.use(express.json({ limit: '1mb' }));
 app.use(express.urlencoded({ extended: true }));
@@ -154,13 +199,23 @@ async function verifyPortReachesUs(port) {
   }
 }
 
+/**
+ * Are we being run by Phusion Passenger — the thing cPanel's "Setup
+ * Node.js App" uses to keep an app running? Passenger defines this
+ * global before it loads us, and it is the documented way to ask.
+ */
+const underPassenger = typeof PhusionPassenger !== 'undefined';
+
 async function start() {
   await connectDB();
   const server = app.listen(env.port, async () => {
     console.log(`  API listening on http://localhost:${env.port}`);
     console.log(`   Gallery:  GET http://localhost:${env.port}/api/projects`);
     console.log(`   Health:   GET http://localhost:${env.port}/api/health`);
-    await verifyPortReachesUs(env.port);
+    // Under Passenger the port above is ignored — Passenger hands us its
+    // own socket — so calling ourselves on it proves nothing and only
+    // fills the log with a failure that is not one.
+    if (!underPassenger) await verifyPortReachesUs(env.port);
   });
 
   // A port already taken is reported by Node as a bare "EADDRINUSE",
@@ -188,7 +243,12 @@ async function start() {
   process.on('SIGINT', () => shutdown('SIGINT'));
 }
 
-if (require.main === module) {
+// Started when run directly (npm start), and also under Passenger, which
+// loads this file with require() rather than as the main module. Without
+// the second half the app would boot, define every route, never call
+// listen(), and Passenger would report "the application could not be
+// started" with nothing in the log to say why.
+if (require.main === module || underPassenger) {
   start().catch((err) => {
     console.error('  Failed to start:', err.message);
     process.exit(1);
@@ -199,3 +259,4 @@ module.exports = { app, start };
 // Exported for tests: checkable on its own without booting the whole server.
 module.exports.verifyPortReachesUs = verifyPortReachesUs;
 module.exports.withoutBaseUri = withoutBaseUri;
+module.exports.stripUnknownPrefix = stripUnknownPrefix;

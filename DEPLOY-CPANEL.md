@@ -432,6 +432,119 @@ end to end, then delete it.
 
 ---
 
+## Only the Projects page is broken — why?
+
+This is worth understanding before fixing anything, because it is the
+clue that tells you where to look.
+
+| Admin page | Where it saves | Needs the Node backend? |
+|---|---|---|
+| Attachments | Files on this server, under `assets/docs/` | No |
+| Awards | Files on this server, under `assets/images/awards/` | No |
+| **Projects** | **Photos to Cloudinary, structure to MongoDB Atlas** | **Yes** |
+
+Attachments and Awards still working therefore proves quite a lot: PHP is
+fine, your login is fine, file permissions are fine, the site is fine.
+The only thing that is broken is the one thing only Projects uses — the
+connection from the panel to the Node backend.
+
+It also explains why everything works on your laptop. There, `npm start`
+is running and `GALLERY_API_BASE=http://localhost:5050` reaches it. On
+the live server there is no `npm start` running in a terminal: the
+backend has to be published by cPanel, and something in that publishing
+is not finished.
+
+---
+
+## Fixing "the address … is not connected to the Node backend"
+
+The banner naming a 404 from **LiteSpeed** (or Apache) is the most common
+version of this. Read it carefully, because it is not saying what people
+assume it says:
+
+- LiteSpeed **is** your hosting account's own web server. It answers for
+  every address on your domain. Its name in the message is normal.
+- A 404 from it means it looked for `/ceylon-api` on your website,
+  found nothing there, and answered by itself. Your request never got
+  anywhere near Node.
+- So this is **not** a port conflict and **not** a firewall, and
+  `lsof` has nothing to do with it. (Older copies of the panel suggested
+  `lsof`; that advice was wrong for shared hosting and has been removed.)
+
+**Start here: open `https://ceylonenergyservices.com/admin/check-env.php`.**
+
+Its "Where the backend is published on this server" section reads the
+answer off the disk instead of guessing, and tells you which of these
+four you have.
+
+### 1. "There is no ceylon-api folder inside this website at all"
+
+The Node app was never published at that address. When you set an
+**Application URL** of `ceylonenergyservices.com/ceylon-api`, cPanel
+creates `public_html/ceylon-api/` and writes an `.htaccess` into it that
+connects the address to your app. No folder means that never happened.
+
+1. cPanel → **Setup Node.js App**.
+2. If there is no app listed, create one — that is Step 3 / Option A
+   above, and every field there matters.
+3. If the app is listed, open it and look at **Application URL**. Set it
+   to `ceylonenergyservices.com` + `ceylon-api` and click **SAVE**.
+   Saving is what writes the connection; changing the box without saving
+   does nothing.
+4. Click **Restart**.
+5. Open `https://ceylonenergyservices.com/ceylon-api/api/health`. You
+   want JSON, starting `{"ok":true,"service":"ceylon-energy-api"`.
+
+### 2. "The folder exists, but it has no Passenger block"
+
+The connection was made once and has since been wiped — almost always by
+re-uploading the website over `public_html`, which replaces or empties
+that folder. Nothing is broken in the app itself.
+
+Re-save the **Application URL** exactly as in case 1, then **Restart**.
+
+To stop it happening again: when you upload the site, never upload over
+`public_html/ceylon-api/`. That folder belongs to cPanel, not to the
+website.
+
+### 3. "A Node app IS published at /nodeapi instead"
+
+The backend is running perfectly — the panel is simply looking at the
+wrong address. Edit `public_html/.env` and make the address match what
+the check page found:
+
+```dotenv
+GALLERY_API_BASE=https://ceylonenergyservices.com/nodeapi
+```
+
+No trailing slash, and no `/api` on the end — the panel adds that part
+itself.
+
+### 4. "The mapping is in place … it is the app behind it that is not answering"
+
+The address is right, so the problem is the app. On its Setup Node.js App
+page, open the **stderr log** link — the reason is printed there in
+plain words. The three usual ones:
+
+| In the log | Meaning | Fix |
+|---|---|---|
+| `MongoDB connection failed` | Atlas is refusing this server | Atlas → Network Access → add the server's Shared IP (step A7) |
+| `fetch is not defined`, or a `SyntaxError` | Node version is below 18 | Raise it in the app's settings (step A1) |
+| `Missing required environment variables` | A name in the variables table is misspelt | Compare it against the table in step A4 |
+
+Then click **Restart** and reload the admin page.
+
+---
+
+## If you cannot get cPanel's Node.js to cooperate at all
+
+Do not spend a second evening on it. Option B in Step 3 puts the same
+backend on Render in about five minutes, and then `GALLERY_API_BASE` is
+just the URL Render gives you. The admin panel does not care where the
+backend lives.
+
+---
+
 ## If it still does not work
 
 The panel tries hard to tell you what is wrong. Match its wording here:
@@ -444,7 +557,8 @@ The panel tries hard to tell you what is wrong. Match its wording here:
 | `401` / `Unauthorized` on upload | The two `ADMIN_API_TOKEN` values do not match | Copy-paste one string into `public_html/.env` **and** the cPanel environment-variables table. Watch for a trailing space |
 | The subdomain shows a cPanel error, not JSON | The Node app crashed at startup | Open the **stderr log** on the Setup Node.js App page. `fetch is not defined` or a `SyntaxError` means the Node version is below 18 — see step A1 |
 | `SSL certificate problem` in the banner | The subdomain has no certificate yet | cPanel → SSL/TLS Status → Run AutoSSL (step A8) |
-| `404` from the API | `GALLERY_API_BASE` has `/api` or a trailing slash on the end | Remove it — see Step 4 |
+| `404` from the API, JSON body saying `No route for GET /...` | The reply IS from the backend, so `GALLERY_API_BASE` has `/api` or a trailing slash on the end | Remove it — see Step 4 |
+| `404` … `not connected to the Node backend`, from LiteSpeed/Apache | The address is not published to the app at all | See "Fixing the address is not connected to the Node backend" above — open `admin/check-env.php` first |
 | Upload fails on big photos | PHP's upload limit | `.user.ini` in `public_html` raises it. Give it a few minutes — PHP caches that file |
 | Gallery lists photos but nothing can be added | Normal when the backend is down | That list comes from `assets/data/projects.json` on disk, not from the API |
 

@@ -52,6 +52,12 @@ ce_admin_header('projects', 'Project Gallery');
         <?php endswitch; ?>
         The gallery below still lists everything, because that is read from a local file.
       </span>
+      <span class="fine-print">
+        Attachments and Awards keep working while this is broken because they save their files
+        straight onto this server. Project photos do not: they go to Cloudinary, and the list of
+        locations and projects lives in MongoDB Atlas. Only the backend can write to those, so
+        this page is the one that stops when the backend cannot be reached.
+      </span>
       <br><a href="check-env.php">Open the setup check</a> for the full picture — the exact path, what parsed, and what answered.
     </div>
   <?php elseif (($api['health']['mongo'] ?? '') !== 'connected'): ?>
